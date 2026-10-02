@@ -1,0 +1,7 @@
+{
+  "command": "Конец связи.",
+  "command_end_seconds": 13.451,
+  "total_seconds": 27.741,
+  "tail_speech_starts_seconds": 16.451,
+  "synthesis": "Piper ru_RU-denis-medium; benchmark fixture only"
+}

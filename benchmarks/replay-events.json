@@ -1,0 +1,240 @@
+[
+  {
+    "type": "partial",
+    "text": "Ничьих не требуя.",
+    "decode_seconds": 0.12071723700046277,
+    "buffer_seconds": 1.184,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 1.1240101940002205
+  },
+  {
+    "type": "commit",
+    "seq": 1,
+    "delta": "Ничьих не требуя",
+    "audio_end": 0.9600000000000001,
+    "decode_seconds": 0.17105172199990193,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 1.9966701270004705
+  },
+  {
+    "type": "partial",
+    "text": "похвал",
+    "decode_seconds": 0.17105172199990193,
+    "buffer_seconds": 1.984,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 1.9967311919999702
+  },
+  {
+    "type": "commit",
+    "seq": 2,
+    "delta": " похвал,",
+    "audio_end": 1.56,
+    "decode_seconds": 0.1800748609994116,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 2.878841380999802
+  },
+  {
+    "type": "partial",
+    "text": "счастлив уж я на",
+    "decode_seconds": 0.1800748609994116,
+    "buffer_seconds": 2.88,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 2.878896535000422
+  },
+  {
+    "type": "commit",
+    "seq": 3,
+    "delta": " счастлив уж я",
+    "audio_end": 2.52,
+    "decode_seconds": 0.21816180699988763,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 3.7974618230000488
+  },
+  {
+    "type": "partial",
+    "text": "надеждой сладкой.",
+    "decode_seconds": 0.21816180699988763,
+    "buffer_seconds": 3.416,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 3.797500456000307
+  },
+  {
+    "type": "commit",
+    "seq": 4,
+    "delta": " надеждой сладкой,",
+    "audio_end": 3.5600000000000005,
+    "decode_seconds": 0.21490296199954173,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 4.714210787000411
+  },
+  {
+    "type": "partial",
+    "text": "что дева с трепе",
+    "decode_seconds": 0.21490296199954173,
+    "buffer_seconds": 3.48,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 4.714508906000447
+  },
+  {
+    "type": "commit",
+    "seq": 5,
+    "delta": " что дева с",
+    "audio_end": 4.2,
+    "decode_seconds": 0.19907611300004646,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 5.615146393000032
+  },
+  {
+    "type": "partial",
+    "text": "трепетом любвис",
+    "decode_seconds": 0.19907611300004646,
+    "buffer_seconds": 3.336,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 5.615206366000166
+  },
+  {
+    "type": "commit",
+    "seq": 6,
+    "delta": " трепетом",
+    "audio_end": 4.68,
+    "decode_seconds": 0.23820041599992692,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 6.554507316000127
+  },
+  {
+    "type": "partial",
+    "text": "любви посмотрит, может быть...",
+    "decode_seconds": 0.23820041599992692,
+    "buffer_seconds": 3.592,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 6.554563931999837
+  },
+  {
+    "type": "commit",
+    "seq": 7,
+    "delta": " любви посмотрит, может быть,",
+    "audio_end": 6.3999375,
+    "decode_seconds": 0.23654505899958167,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 7.49382621299992
+  },
+  {
+    "type": "partial",
+    "text": "украдкой, на...",
+    "decode_seconds": 0.23654505899958167,
+    "buffer_seconds": 4.0080625,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 7.494622827000057
+  },
+  {
+    "type": "commit",
+    "seq": 8,
+    "delta": " украдкой на",
+    "audio_end": 7.1599375,
+    "decode_seconds": 0.21125640199988993,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 8.407530305000364
+  },
+  {
+    "type": "partial",
+    "text": "песни грешные.",
+    "decode_seconds": 0.21125640199988993,
+    "buffer_seconds": 3.2800625,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 8.407596709000245
+  },
+  {
+    "type": "commit",
+    "seq": 9,
+    "delta": " песни «Грешные",
+    "audio_end": 8.1599375,
+    "decode_seconds": 0.22856751600011194,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 9.337060495000514
+  },
+  {
+    "type": "partial",
+    "text": "мои».",
+    "decode_seconds": 0.22856751600011194,
+    "buffer_seconds": 3.4160625,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 9.337127970999973
+  },
+  {
+    "type": "commit",
+    "seq": 10,
+    "delta": " мои».",
+    "audio_end": 9.1999375,
+    "decode_seconds": 0.22746987700065802,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 9.565384635000555
+  },
+  {
+    "type": "partial",
+    "text": "",
+    "decode_seconds": 0.22746987700065802,
+    "buffer_seconds": 0.384,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 9.565446211000562
+  },
+  {
+    "type": "segment_end",
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 9.565676152999913
+  },
+  {
+    "type": "partial",
+    "text": "У лукоморья ты",
+    "decode_seconds": 0.12056647899953532,
+    "buffer_seconds": 1.184,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 10.387905745999888
+  },
+  {
+    "type": "commit",
+    "seq": 11,
+    "delta": " У лукоморья",
+    "audio_end": 10.016,
+    "decode_seconds": 0.17490959099995962,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 11.263848904000042
+  },
+  {
+    "type": "partial",
+    "text": "дуб зелёный.",
+    "decode_seconds": 0.17490959099995962,
+    "buffer_seconds": 2.048,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 11.263906242000303
+  },
+  {
+    "type": "commit",
+    "seq": 12,
+    "delta": " дуб зелёный.",
+    "audio_end": 11.29,
+    "decode_seconds": 0.15520209999976942,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 11.447464087000299
+  },
+  {
+    "type": "partial",
+    "text": "",
+    "decode_seconds": 0.15520209999976942,
+    "buffer_seconds": 0.0,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 11.44749461399988
+  },
+  {
+    "type": "segment_end",
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 11.447499161999986
+  },
+  {
+    "type": "session_end",
+    "text": "Ничьих не требуя похвал, счастлив уж я надеждой сладкой, что дева с трепетом любви посмотрит, может быть, украдкой на песни «Грешные мои». У лукоморья дуб зелёный.",
+    "audio_seconds": 11.29,
+    "elapsed_seconds": 11.399032161000832,
+    "session_id": "3e22517b-fd9a-43a8-87ea-6bce79d3ada9",
+    "received_seconds": 11.447506876999796
+  }
+]

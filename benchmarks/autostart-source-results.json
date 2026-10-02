@@ -1,0 +1,13 @@
+{
+  "executable": "/home/vm/pet_project/giga-dictation/.venv/bin/python3",
+  "mechanism": "GIO launch of XDG .desktop",
+  "fresh_login_env": true,
+  "startup_seconds": 2.609122063000541,
+  "started_in_tray": true,
+  "correct_profile": true,
+  "model_absent_until_activation": true,
+  "duplicate_launch_does_not_show_or_duplicate_app": true,
+  "window_opens_on_request": true,
+  "clean_exit": true,
+  "entry_removed_on_disable": true
+}

@@ -1,0 +1,835 @@
+{
+  "audio_seconds": 45.16,
+  "first_commit_seconds": 1.962919452999813,
+  "stop_latency_seconds": 0.1405278210004326,
+  "max_buffer_seconds": 5.556,
+  "max_decode_seconds": 0.2433642019996114,
+  "text": "Ничьих не требуя похвал, счастлив уж я надеждой сладкой, что дева с трепетом любви посмотрит, может быть, украдкой на песни грешные мои. У Лукоморья дуб зелёный, ничьих не требуя похвал, счастлив уж я надеждой сладкой, Что дева с трепетом любви посмотрит, может быть, украдкой на песни грешные мои. У лукоморья дуб зелёный, Ничьих не требуя похвал, счастлив уж я надеждой сладкой, что дева с трепетом любви посмотрит, может быть, украдкой на песни грешные мои. лукоморья дуб зелёный, ничьих не требуя похвал, счастлив уж я надеждой сладкой, что дева с трепетом любви посмотрит, может быть, украдкой на песни грешные мои. лукоморья дуб зелёный.",
+  "commits": 39,
+  "events": [
+    {
+      "type": "partial",
+      "text": "Ничьих не требуя.",
+      "decode_seconds": 0.11861451599997963,
+      "buffer_seconds": 1.184,
+      "session_id": "",
+      "received_seconds": 1.1251135869997597
+    },
+    {
+      "type": "commit",
+      "seq": 1,
+      "delta": "Ничьих не требуя",
+      "audio_end": 0.9600000000000001,
+      "decode_seconds": 0.14057545400009985,
+      "session_id": "",
+      "received_seconds": 1.962919452999813
+    },
+    {
+      "type": "partial",
+      "text": "похвал",
+      "decode_seconds": 0.14057545400009985,
+      "buffer_seconds": 1.984,
+      "session_id": "",
+      "received_seconds": 1.962932307000301
+    },
+    {
+      "type": "commit",
+      "seq": 2,
+      "delta": " похвал,",
+      "audio_end": 1.56,
+      "decode_seconds": 0.20272869900054502,
+      "session_id": "",
+      "received_seconds": 2.8671107479995044
+    },
+    {
+      "type": "partial",
+      "text": "счастлив уж я на",
+      "decode_seconds": 0.20272869900054502,
+      "buffer_seconds": 2.88,
+      "session_id": "",
+      "received_seconds": 2.8671222390003095
+    },
+    {
+      "type": "commit",
+      "seq": 3,
+      "delta": " счастлив уж я",
+      "audio_end": 2.52,
+      "decode_seconds": 0.21833977099959156,
+      "session_id": "",
+      "received_seconds": 3.7866097819996867
+    },
+    {
+      "type": "partial",
+      "text": "надеждой сладкой.",
+      "decode_seconds": 0.21833977099959156,
+      "buffer_seconds": 3.416,
+      "session_id": "",
+      "received_seconds": 3.786628056000154
+    },
+    {
+      "type": "commit",
+      "seq": 4,
+      "delta": " надеждой сладкой,",
+      "audio_end": 3.5600000000000005,
+      "decode_seconds": 0.18800985100006073,
+      "session_id": "",
+      "received_seconds": 4.675788102000297
+    },
+    {
+      "type": "partial",
+      "text": "что дева с трепе",
+      "decode_seconds": 0.18800985100006073,
+      "buffer_seconds": 3.352,
+      "session_id": "",
+      "received_seconds": 4.6758537240002624
+    },
+    {
+      "type": "commit",
+      "seq": 5,
+      "delta": " что дева с",
+      "audio_end": 4.2,
+      "decode_seconds": 0.18687223500000982,
+      "session_id": "",
+      "received_seconds": 5.56448536500011
+    },
+    {
+      "type": "partial",
+      "text": "трепетом любви",
+      "decode_seconds": 0.18687223500000982,
+      "buffer_seconds": 3.24,
+      "session_id": "",
+      "received_seconds": 5.564494070999899
+    },
+    {
+      "type": "commit",
+      "seq": 6,
+      "delta": " трепетом любви",
+      "audio_end": 5.0,
+      "decode_seconds": 0.2078843160006727,
+      "session_id": "",
+      "received_seconds": 6.473701469999469
+    },
+    {
+      "type": "partial",
+      "text": "посмотрит, может...",
+      "decode_seconds": 0.2078843160006727,
+      "buffer_seconds": 3.496,
+      "session_id": "",
+      "received_seconds": 6.4753039440001885
+    },
+    {
+      "type": "commit",
+      "seq": 7,
+      "delta": " посмотрит, может",
+      "audio_end": 6.199999999999999,
+      "decode_seconds": 0.207338131999677,
+      "session_id": "",
+      "received_seconds": 7.384592595999493
+    },
+    {
+      "type": "partial",
+      "text": "быть, украдкой на",
+      "decode_seconds": 0.207338131999677,
+      "buffer_seconds": 3.592,
+      "session_id": "",
+      "received_seconds": 7.384601001999727
+    },
+    {
+      "type": "commit",
+      "seq": 8,
+      "delta": " быть, украдкой на",
+      "audio_end": 7.1199375,
+      "decode_seconds": 0.18563306400028523,
+      "session_id": "",
+      "received_seconds": 8.271915579999586
+    },
+    {
+      "type": "partial",
+      "text": "песни грешной.",
+      "decode_seconds": 0.18563306400028523,
+      "buffer_seconds": 3.2880625,
+      "session_id": "",
+      "received_seconds": 8.272051072000068
+    },
+    {
+      "type": "commit",
+      "seq": 9,
+      "delta": " песни",
+      "audio_end": 7.5599375,
+      "decode_seconds": 0.1995496469999125,
+      "session_id": "",
+      "received_seconds": 9.172923942000125
+    },
+    {
+      "type": "partial",
+      "text": "«грешные мои».",
+      "decode_seconds": 0.1995496469999125,
+      "buffer_seconds": 3.2640625,
+      "session_id": "",
+      "received_seconds": 9.17307088599955
+    },
+    {
+      "type": "commit",
+      "seq": 10,
+      "delta": " грешные мои.",
+      "audio_end": 9.1999375,
+      "decode_seconds": 0.1799289439995846,
+      "session_id": "",
+      "received_seconds": 9.382768145000227
+    },
+    {
+      "type": "partial",
+      "text": "",
+      "decode_seconds": 0.1799289439995846,
+      "buffer_seconds": 0.16,
+      "session_id": "",
+      "received_seconds": 9.382779966999806
+    },
+    {
+      "type": "segment_end",
+      "session_id": "",
+      "received_seconds": 9.382784735999849
+    },
+    {
+      "type": "partial",
+      "text": "У лукоморья ты",
+      "decode_seconds": 0.0962490030005938,
+      "buffer_seconds": 1.056,
+      "session_id": "",
+      "received_seconds": 10.298781509000037
+    },
+    {
+      "type": "commit",
+      "seq": 11,
+      "delta": " У Лукоморья",
+      "audio_end": 9.936,
+      "decode_seconds": 0.1516851209999004,
+      "session_id": "",
+      "received_seconds": 11.151710062999882
+    },
+    {
+      "type": "partial",
+      "text": "Tube зелёный.",
+      "decode_seconds": 0.1516851209999004,
+      "buffer_seconds": 1.984,
+      "session_id": "",
+      "received_seconds": 11.151718639000137
+    },
+    {
+      "type": "partial",
+      "text": "дуб зелёный, ничьих",
+      "decode_seconds": 0.16781170300055237,
+      "buffer_seconds": 2.88,
+      "session_id": "",
+      "received_seconds": 12.020723411999825
+    },
+    {
+      "type": "commit",
+      "seq": 12,
+      "delta": " дуб зелёный, ничьих",
+      "audio_end": 11.696,
+      "decode_seconds": 0.2433642019996114,
+      "session_id": "",
+      "received_seconds": 12.96640501499951
+    },
+    {
+      "type": "partial",
+      "text": "не требуя похвал.",
+      "decode_seconds": 0.2433642019996114,
+      "buffer_seconds": 3.776,
+      "session_id": "",
+      "received_seconds": 12.966412889999447
+    },
+    {
+      "type": "commit",
+      "seq": 13,
+      "delta": " не требуя похвал,",
+      "audio_end": 12.816,
+      "decode_seconds": 0.2113671830002204,
+      "session_id": "",
+      "received_seconds": 13.879944815000272
+    },
+    {
+      "type": "partial",
+      "text": "счастлив уж",
+      "decode_seconds": 0.2113671830002204,
+      "buffer_seconds": 3.392,
+      "session_id": "",
+      "received_seconds": 13.880209367999669
+    },
+    {
+      "type": "commit",
+      "seq": 14,
+      "delta": " счастлив уж",
+      "audio_end": 13.616,
+      "decode_seconds": 0.21104453099997045,
+      "session_id": "",
+      "received_seconds": 14.793774324999504
+    },
+    {
+      "type": "partial",
+      "text": "я надежды с",
+      "decode_seconds": 0.21104453099997045,
+      "buffer_seconds": 3.168,
+      "session_id": "",
+      "received_seconds": 14.793782279999505
+    },
+    {
+      "type": "commit",
+      "seq": 15,
+      "delta": " я",
+      "audio_end": 13.816,
+      "decode_seconds": 0.17871897399982117,
+      "session_id": "",
+      "received_seconds": 15.673803312000018
+    },
+    {
+      "type": "partial",
+      "text": "надеждой сладкой, что дева",
+      "decode_seconds": 0.17871897399982117,
+      "buffer_seconds": 3.264,
+      "session_id": "",
+      "received_seconds": 15.673816597000041
+    },
+    {
+      "type": "commit",
+      "seq": 16,
+      "delta": " надеждой сладкой, Что дева с",
+      "audio_end": 15.456,
+      "decode_seconds": 0.2301961620005386,
+      "session_id": "",
+      "received_seconds": 16.60563246499987
+    },
+    {
+      "type": "partial",
+      "text": "трепетом любви",
+      "decode_seconds": 0.2301961620005386,
+      "buffer_seconds": 5.556,
+      "session_id": "",
+      "received_seconds": 16.6058419459996
+    },
+    {
+      "type": "partial",
+      "text": "трепетом любви",
+      "decode_seconds": 0.21988788699945871,
+      "buffer_seconds": 1.756,
+      "session_id": "",
+      "received_seconds": 16.82608568500018
+    },
+    {
+      "type": "partial",
+      "text": "трепетом любви посмотрит, может",
+      "decode_seconds": 0.1678213870000036,
+      "buffer_seconds": 2.556,
+      "session_id": "",
+      "received_seconds": 17.694725770999867
+    },
+    {
+      "type": "commit",
+      "seq": 17,
+      "delta": " трепетом любви посмотрит, может",
+      "audio_end": 17.5,
+      "decode_seconds": 0.21860055799970723,
+      "session_id": "",
+      "received_seconds": 18.61462077899978
+    },
+    {
+      "type": "partial",
+      "text": "быть, украдкой.",
+      "decode_seconds": 0.21860055799970723,
+      "buffer_seconds": 3.548,
+      "session_id": "",
+      "received_seconds": 18.614630457000203
+    },
+    {
+      "type": "commit",
+      "seq": 18,
+      "delta": " быть, украдкой",
+      "audio_end": 18.3,
+      "decode_seconds": 0.1832741480002369,
+      "session_id": "",
+      "received_seconds": 19.500813280999864
+    },
+    {
+      "type": "partial",
+      "text": "на песни грешной.",
+      "decode_seconds": 0.1832741480002369,
+      "buffer_seconds": 3.188,
+      "session_id": "",
+      "received_seconds": 19.500825703999908
+    },
+    {
+      "type": "commit",
+      "seq": 19,
+      "delta": " на песни",
+      "audio_end": 18.860000000000003,
+      "decode_seconds": 0.20090497199998936,
+      "session_id": "",
+      "received_seconds": 20.40314775099978
+    },
+    {
+      "type": "partial",
+      "text": "грешные мои.",
+      "decode_seconds": 0.20090497199998936,
+      "buffer_seconds": 3.38,
+      "session_id": "",
+      "received_seconds": 20.40315592600018
+    },
+    {
+      "type": "commit",
+      "seq": 20,
+      "delta": " грешные мои.",
+      "audio_end": 20.5,
+      "decode_seconds": 0.18507225199937238,
+      "session_id": "",
+      "received_seconds": 20.68722491799963
+    },
+    {
+      "type": "partial",
+      "text": "",
+      "decode_seconds": 0.18507225199937238,
+      "buffer_seconds": 0.16,
+      "session_id": "",
+      "received_seconds": 20.6888824509997
+    },
+    {
+      "type": "segment_end",
+      "session_id": "",
+      "received_seconds": 20.68888832199991
+    },
+    {
+      "type": "partial",
+      "text": "У лукоморьяту.",
+      "decode_seconds": 0.10483933999967121,
+      "buffer_seconds": 1.184,
+      "session_id": "",
+      "received_seconds": 21.609054673999708
+    },
+    {
+      "type": "commit",
+      "seq": 21,
+      "delta": " У",
+      "audio_end": 20.592,
+      "decode_seconds": 0.1641787110002042,
+      "session_id": "",
+      "received_seconds": 22.477311920999455
+    },
+    {
+      "type": "partial",
+      "text": "лукоморья дуб зелёный.",
+      "decode_seconds": 0.1641787110002042,
+      "buffer_seconds": 1.984,
+      "session_id": "",
+      "received_seconds": 22.4773253759995
+    },
+    {
+      "type": "commit",
+      "seq": 22,
+      "delta": " лукоморья дуб зелёный,",
+      "audio_end": 22.352,
+      "decode_seconds": 0.1869633859996611,
+      "session_id": "",
+      "received_seconds": 23.36590741100008
+    },
+    {
+      "type": "partial",
+      "text": "ниичьих не",
+      "decode_seconds": 0.1869633859996611,
+      "buffer_seconds": 2.88,
+      "session_id": "",
+      "received_seconds": 23.365930443999787
+    },
+    {
+      "type": "partial",
+      "text": "ничьих не требуя похвал.",
+      "decode_seconds": 0.17676698000013857,
+      "buffer_seconds": 3.136,
+      "session_id": "",
+      "received_seconds": 24.245905691999724
+    },
+    {
+      "type": "commit",
+      "seq": 23,
+      "delta": " Ничьих не требуя похвал,",
+      "audio_end": 24.072000000000003,
+      "decode_seconds": 0.23946524799976032,
+      "session_id": "",
+      "received_seconds": 25.18592132899994
+    },
+    {
+      "type": "partial",
+      "text": "счастлив ужя",
+      "decode_seconds": 0.23946524799976032,
+      "buffer_seconds": 5.532,
+      "session_id": "",
+      "received_seconds": 25.186046031999467
+    },
+    {
+      "type": "partial",
+      "text": "счастлив уж я.",
+      "decode_seconds": 0.1959639229999084,
+      "buffer_seconds": 1.724,
+      "session_id": "",
+      "received_seconds": 25.382418574999974
+    },
+    {
+      "type": "partial",
+      "text": "счастлив уж я надеждой сладкой.",
+      "decode_seconds": 0.1587670380004056,
+      "buffer_seconds": 2.62,
+      "session_id": "",
+      "received_seconds": 26.242683939000017
+    },
+    {
+      "type": "commit",
+      "seq": 24,
+      "delta": " счастлив уж я надеждой",
+      "audio_end": 25.652,
+      "decode_seconds": 0.22113705999981903,
+      "session_id": "",
+      "received_seconds": 27.166651347999505
+    },
+    {
+      "type": "partial",
+      "text": "сладкой,Ч что ева стре",
+      "decode_seconds": 0.22113705999981903,
+      "buffer_seconds": 3.548,
+      "session_id": "",
+      "received_seconds": 27.16876202000003
+    },
+    {
+      "type": "partial",
+      "text": "сладкой, то дева с трепетом любви",
+      "decode_seconds": 0.1904597559996546,
+      "buffer_seconds": 3.644,
+      "session_id": "",
+      "received_seconds": 28.062092289999782
+    },
+    {
+      "type": "commit",
+      "seq": 25,
+      "delta": " сладкой, что дева с трепетом любви",
+      "audio_end": 27.572000000000003,
+      "decode_seconds": 0.22231470000042464,
+      "session_id": "",
+      "received_seconds": 28.626267714000278
+    },
+    {
+      "type": "partial",
+      "text": "посмотрит",
+      "decode_seconds": 0.22231470000042464,
+      "buffer_seconds": 1.692,
+      "session_id": "",
+      "received_seconds": 28.627531998999984
+    },
+    {
+      "type": "partial",
+      "text": "посмотрит, может быть, укра.т.",
+      "decode_seconds": 0.15172783800062462,
+      "buffer_seconds": 2.492,
+      "session_id": "",
+      "received_seconds": 29.482269786999495
+    },
+    {
+      "type": "commit",
+      "seq": 26,
+      "delta": " посмотрит, может быть,",
+      "audio_end": 29.02,
+      "decode_seconds": 0.17893698500029132,
+      "session_id": "",
+      "received_seconds": 30.362762138000107
+    },
+    {
+      "type": "partial",
+      "text": "украдкой на песни.",
+      "decode_seconds": 0.17893698500029132,
+      "buffer_seconds": 3.42,
+      "session_id": "",
+      "received_seconds": 30.36290964299951
+    },
+    {
+      "type": "commit",
+      "seq": 27,
+      "delta": " украдкой на песни",
+      "audio_end": 30.1,
+      "decode_seconds": 0.18244906500058278,
+      "session_id": "",
+      "received_seconds": 31.249071739999636
+    },
+    {
+      "type": "partial",
+      "text": "грешные мои.",
+      "decode_seconds": 0.18244906500058278,
+      "buffer_seconds": 3.476,
+      "session_id": "",
+      "received_seconds": 31.249081627999658
+    },
+    {
+      "type": "commit",
+      "seq": 28,
+      "delta": " грешные мои.",
+      "audio_end": 31.808,
+      "decode_seconds": 0.1898888790001365,
+      "session_id": "",
+      "received_seconds": 31.992412605000027
+    },
+    {
+      "type": "partial",
+      "text": "",
+      "decode_seconds": 0.1898888790001365,
+      "buffer_seconds": 0.192,
+      "session_id": "",
+      "received_seconds": 31.992536075000316
+    },
+    {
+      "type": "segment_end",
+      "session_id": "",
+      "received_seconds": 31.992619138999544
+    },
+    {
+      "type": "partial",
+      "text": "лукоморьяту.",
+      "decode_seconds": 0.08540890699987358,
+      "buffer_seconds": 1.088,
+      "session_id": "",
+      "received_seconds": 32.88998224199986
+    },
+    {
+      "type": "partial",
+      "text": "Лукоморья дуб зелёный.",
+      "decode_seconds": 0.15967772000021796,
+      "buffer_seconds": 1.984,
+      "session_id": "",
+      "received_seconds": 33.75185220200001
+    },
+    {
+      "type": "commit",
+      "seq": 29,
+      "delta": " лукоморья дуб зелёный,",
+      "audio_end": 33.648,
+      "decode_seconds": 0.18475981099982164,
+      "session_id": "",
+      "received_seconds": 34.6381810820003
+    },
+    {
+      "type": "partial",
+      "text": "ничьих не",
+      "decode_seconds": 0.18475981099982164,
+      "buffer_seconds": 2.88,
+      "session_id": "",
+      "received_seconds": 34.63821805099997
+    },
+    {
+      "type": "commit",
+      "seq": 30,
+      "delta": " ничьих не",
+      "audio_end": 34.408,
+      "decode_seconds": 0.2094745200001853,
+      "session_id": "",
+      "received_seconds": 35.54853567699956
+    },
+    {
+      "type": "partial",
+      "text": "требуя похвал.",
+      "decode_seconds": 0.2094745200001853,
+      "buffer_seconds": 3.136,
+      "session_id": "",
+      "received_seconds": 35.5485433419999
+    },
+    {
+      "type": "commit",
+      "seq": 31,
+      "delta": " требуя похвал,",
+      "audio_end": 35.367999999999995,
+      "decode_seconds": 0.18305504700038,
+      "session_id": "",
+      "received_seconds": 36.43358328300019
+    },
+    {
+      "type": "partial",
+      "text": "счастлив уж.",
+      "decode_seconds": 0.18305504700038,
+      "buffer_seconds": 3.272,
+      "session_id": "",
+      "received_seconds": 36.43360196799949
+    },
+    {
+      "type": "commit",
+      "seq": 32,
+      "delta": " счастлив уж",
+      "audio_end": 36.2079375,
+      "decode_seconds": 0.18776434200026415,
+      "session_id": "",
+      "received_seconds": 37.322317125000154
+    },
+    {
+      "type": "partial",
+      "text": "я надеждй сла",
+      "decode_seconds": 0.18776434200026415,
+      "buffer_seconds": 3.2080625,
+      "session_id": "",
+      "received_seconds": 37.32275911800025
+    },
+    {
+      "type": "commit",
+      "seq": 33,
+      "delta": " я",
+      "audio_end": 36.407937499999996,
+      "decode_seconds": 0.19931426300081512,
+      "session_id": "",
+      "received_seconds": 38.22343923999961
+    },
+    {
+      "type": "partial",
+      "text": "надеждой сладкой, что дева",
+      "decode_seconds": 0.19931426300081512,
+      "buffer_seconds": 3.2640625,
+      "session_id": "",
+      "received_seconds": 38.22366032199989
+    },
+    {
+      "type": "commit",
+      "seq": 34,
+      "delta": " надеждой",
+      "audio_end": 36.927875,
+      "decode_seconds": 0.23161529600020003,
+      "session_id": "",
+      "received_seconds": 39.15720585100007
+    },
+    {
+      "type": "partial",
+      "text": "сладкой,Что дева с трепетом любви",
+      "decode_seconds": 0.23161529600020003,
+      "buffer_seconds": 3.992125,
+      "session_id": "",
+      "received_seconds": 39.15721571999984
+    },
+    {
+      "type": "commit",
+      "seq": 35,
+      "delta": " сладкой, что дева с трепетом любви",
+      "audio_end": 38.847874999999995,
+      "decode_seconds": 0.20611107399963657,
+      "session_id": "",
+      "received_seconds": 39.909375844999886
+    },
+    {
+      "type": "partial",
+      "text": "посмотрит",
+      "decode_seconds": 0.20611107399963657,
+      "buffer_seconds": 1.756,
+      "session_id": "",
+      "received_seconds": 39.909384871999464
+    },
+    {
+      "type": "partial",
+      "text": "посмотрит, может быть, украдит.",
+      "decode_seconds": 0.18024694899941096,
+      "buffer_seconds": 2.556,
+      "session_id": "",
+      "received_seconds": 40.792099053999664
+    },
+    {
+      "type": "commit",
+      "seq": 36,
+      "delta": " посмотрит, может быть,",
+      "audio_end": 40.324,
+      "decode_seconds": 0.18359232999955566,
+      "session_id": "",
+      "received_seconds": 41.67657726000016
+    },
+    {
+      "type": "partial",
+      "text": "украдкой на песни.",
+      "decode_seconds": 0.18359232999955566,
+      "buffer_seconds": 3.452,
+      "session_id": "",
+      "received_seconds": 41.67659417100003
+    },
+    {
+      "type": "commit",
+      "seq": 37,
+      "delta": " украдкой на песни",
+      "audio_end": 41.4439375,
+      "decode_seconds": 0.20984580900039873,
+      "session_id": "",
+      "received_seconds": 42.58801326899993
+    },
+    {
+      "type": "partial",
+      "text": "грешные мои.",
+      "decode_seconds": 0.20984580900039873,
+      "buffer_seconds": 3.4680625,
+      "session_id": "",
+      "received_seconds": 42.58803678299955
+    },
+    {
+      "type": "commit",
+      "seq": 38,
+      "delta": " грешные мои.",
+      "audio_end": 43.072,
+      "decode_seconds": 0.2208056299996315,
+      "session_id": "",
+      "received_seconds": 43.22588699300013
+    },
+    {
+      "type": "partial",
+      "text": "",
+      "decode_seconds": 0.2208056299996315,
+      "buffer_seconds": 0.224,
+      "session_id": "",
+      "received_seconds": 43.225897462999455
+    },
+    {
+      "type": "segment_end",
+      "session_id": "",
+      "received_seconds": 43.22590339399994
+    },
+    {
+      "type": "partial",
+      "text": "лукоморьят",
+      "decode_seconds": 0.07270786499975657,
+      "buffer_seconds": 1.024,
+      "session_id": "",
+      "received_seconds": 44.07695266100018
+    },
+    {
+      "type": "partial",
+      "text": "лукоморья дуб зелёный.",
+      "decode_seconds": 0.15404110999952536,
+      "buffer_seconds": 1.92,
+      "session_id": "",
+      "received_seconds": 44.930526981000185
+    },
+    {
+      "type": "commit",
+      "seq": 39,
+      "delta": " лукоморья дуб зелёный.",
+      "audio_end": 45.152,
+      "decode_seconds": 0.13592608599992673,
+      "session_id": "",
+      "received_seconds": 45.29876695199982
+    },
+    {
+      "type": "partial",
+      "text": "",
+      "decode_seconds": 0.13592608599992673,
+      "buffer_seconds": 0.0,
+      "session_id": "",
+      "received_seconds": 45.29888277800001
+    },
+    {
+      "type": "segment_end",
+      "session_id": "",
+      "received_seconds": 45.29906825299986
+    },
+    {
+      "type": "session_end",
+      "text": "Ничьих не требуя похвал, счастлив уж я надеждой сладкой, что дева с трепетом любви посмотрит, может быть, украдкой на песни грешные мои. У Лукоморья дуб зелёный, ничьих не требуя похвал, счастлив уж я надеждой сладкой, Что дева с трепетом любви посмотрит, может быть, украдкой на песни грешные мои. У лукоморья дуб зелёный, Ничьих не требуя похвал, счастлив уж я надеждой сладкой, что дева с трепетом любви посмотрит, может быть, украдкой на песни грешные мои. лукоморья дуб зелёный, ничьих не требуя похвал, счастлив уж я надеждой сладкой, что дева с трепетом любви посмотрит, может быть, украдкой на песни грешные мои. лукоморья дуб зелёный.",
+      "audio_seconds": 45.16,
+      "elapsed_seconds": 45.265148022000176,
+      "session_id": "",
+      "received_seconds": 45.299227540000174
+    }
+  ]
+}

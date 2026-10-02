@@ -1,0 +1,111 @@
+{
+  "cold_start_seconds": 5.783146337000289,
+  "hotkey_modifier_masks": [
+    {
+      "before": 0,
+      "after": 0
+    },
+    {
+      "before": 0,
+      "after": 0
+    },
+    {
+      "before": 0,
+      "after": 0
+    },
+    {
+      "before": 0,
+      "after": 0
+    }
+  ],
+  "first_text_after_audio_seconds": 2.051111854001647,
+  "executable": "/home/vm/pet_project/giga-dictation/dist/GigaDictation/GigaDictation",
+  "recognized_text": "Ничьих не требуя похвал, счастлив уж я надеждой сладкой, Что дева с трепетом любви посмотрит, может быть, украдкой на песни грешные мои. У лукоморья дуб зелёный.",
+  "inserted_text": "Ничьих не требуя похвал, счастлив уж я надеждой сладкой, Что дева с трепетом любви посмотрит, может быть, украдкой на песни грешные мои. У лукоморья дуб зелёный.",
+  "matches": true,
+  "first_insert_seconds": 2.895822840000619,
+  "elapsed_seconds": 13.390179374999207,
+  "audio_source": "PortAudio/PulseAudio monitor",
+  "activation": "global hotkey",
+  "hotkey": "<ctrl>+<shift>+a",
+  "offline": true,
+  "target": "XFCE Terminal",
+  "clipboard_text": "Ничьих не требуя похвал, счастлив уж я надеждой сладкой, Что дева с трепетом любви посмотрит, может быть, украдкой на песни грешные мои. У лукоморья дуб зелёный.",
+  "clipboard_matches": true,
+  "bracketed_paste": true,
+  "owned_server_stopped": true,
+  "sessions": [
+    {
+      "cold_start_seconds": 5.783146337000289,
+      "hotkey_modifier_masks": [
+        {
+          "before": 0,
+          "after": 0
+        },
+        {
+          "before": 0,
+          "after": 0
+        },
+        {
+          "before": 0,
+          "after": 0
+        },
+        {
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "first_text_after_audio_seconds": 2.100165043000743,
+      "executable": "/home/vm/pet_project/giga-dictation/dist/GigaDictation/GigaDictation",
+      "recognized_text": "Ничьих не требуя похвал, счастлив уж я надеждой сладкой, Что дева с трепетом любви посмотрит, может быть, украдкой на песни грешные мои. У лукоморья дуб зелёный.",
+      "inserted_text": "Ничьих не требуя похвал, счастлив уж я надеждой сладкой, Что дева с трепетом любви посмотрит, может быть, украдкой на песни грешные мои. У лукоморья дуб зелёный.",
+      "matches": true,
+      "first_insert_seconds": 3.089464468001097,
+      "elapsed_seconds": 15.684244019999824,
+      "audio_source": "PortAudio/PulseAudio monitor",
+      "activation": "global hotkey",
+      "hotkey": "<ctrl>+<shift>+a",
+      "offline": true,
+      "target": "XFCE Terminal",
+      "clipboard_text": "Ничьих не требуя похвал, счастлив уж я надеждой сладкой, Что дева с трепетом любви посмотрит, может быть, украдкой на песни грешные мои. У лукоморья дуб зелёный.",
+      "clipboard_matches": true,
+      "bracketed_paste": true
+    },
+    {
+      "cold_start_seconds": 5.783146337000289,
+      "hotkey_modifier_masks": [
+        {
+          "before": 0,
+          "after": 0
+        },
+        {
+          "before": 0,
+          "after": 0
+        },
+        {
+          "before": 0,
+          "after": 0
+        },
+        {
+          "before": 0,
+          "after": 0
+        }
+      ],
+      "first_text_after_audio_seconds": 2.051111854001647,
+      "executable": "/home/vm/pet_project/giga-dictation/dist/GigaDictation/GigaDictation",
+      "recognized_text": "Ничьих не требуя похвал, счастлив уж я надеждой сладкой, Что дева с трепетом любви посмотрит, может быть, украдкой на песни грешные мои. У лукоморья дуб зелёный.",
+      "inserted_text": "Ничьих не требуя похвал, счастлив уж я надеждой сладкой, Что дева с трепетом любви посмотрит, может быть, украдкой на песни грешные мои. У лукоморья дуб зелёный.",
+      "matches": true,
+      "first_insert_seconds": 2.895822840000619,
+      "elapsed_seconds": 13.390179374999207,
+      "audio_source": "PortAudio/PulseAudio monitor",
+      "activation": "global hotkey",
+      "hotkey": "<ctrl>+<shift>+a",
+      "offline": true,
+      "target": "XFCE Terminal",
+      "clipboard_text": "Ничьих не требуя похвал, счастлив уж я надеждой сладкой, Что дева с трепетом любви посмотрит, может быть, украдкой на песни грешные мои. У лукоморья дуб зелёный.",
+      "clipboard_matches": true,
+      "bracketed_paste": true
+    }
+  ]
+}
