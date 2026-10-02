@@ -63,10 +63,11 @@ def test_real_desktop_launcher_preserves_spaces_quotes_backslashes_dollars_and_p
 
 def test_xdg_override_and_frozen_command_keep_correct_profile(monkeypatch, tmp_path):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "custom-config"))
-    manager = Autostart(home=tmp_path / "profile", executable="/opt/GigaDictation", frozen=True)
+    executable = str(tmp_path / "GigaDictation")
+    manager = Autostart(home=tmp_path / "profile", executable=executable, platform="linux", frozen=True)
     assert manager.entry == tmp_path / "custom-config/autostart/giga-dictation.desktop"
     assert manager.command() == [
-        "/opt/GigaDictation",
+        executable,
         "app",
         "--background",
         "--home",
@@ -118,7 +119,10 @@ class Registry:
         del self.values[key.path][name]
 
 
-def test_windows_run_key_uses_windowless_python_and_preserves_other_entries(tmp_path):
+def test_windows_run_key_uses_windowless_python_and_preserves_other_entries(tmp_path_factory):
+    # HKCU Run limits the complete command to 260 characters. The default
+    # per-test temporary directory name can exceed that budget on Windows.
+    tmp_path = tmp_path_factory.mktemp("run")
     registry = Registry()
     registry.values[RUN_KEY] = {"OtherApp": ("unchanged", registry.REG_SZ)}
     executable = tmp_path / "Python with spaces" / "python.exe"
