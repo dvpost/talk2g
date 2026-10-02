@@ -123,6 +123,29 @@ async def test_full_buffer_stops_with_explicit_error_instead_of_dropping_words(m
     assert worker.packets.qsize() == 2
 
 
+async def test_language_model_mode_rejects_server_without_neural_comparison(monkeypatch):
+    monkeypatch.setattr(client, "read_audio", lambda path: np.zeros(RATE))
+    monkeypatch.setattr(client, "health", lambda url: {"ready": True})
+
+    async def handle(socket):
+        start = json.loads(await socket.recv())
+        assert start["lm_rescore"] is True
+        await socket.send('{"type":"ready","dual_window":true}')
+        await socket.wait_closed()
+
+    async with serve(handle, "127.0.0.1", 0) as listener:
+        port = listener.sockets[0].getsockname()[1]
+        worker = client.DictationThread(
+            Settings(server_url=f"ws://127.0.0.1:{port}/v1/dictate", dual_window=True, lm_rescore=True),
+            audio_file="test",
+        )
+        failures = []
+        worker.failure.connect(failures.append, Qt.ConnectionType.DirectConnection)
+        await asyncio.wait_for(asyncio.to_thread(worker.run), 2)
+    assert failures and "не поддерживает ruGPT" in failures[0]
+    assert worker.capture_finished.is_set()
+
+
 async def test_dual_mode_rejects_old_server_instead_of_silently_running_single_window(monkeypatch):
     monkeypatch.setattr(client, "read_audio", lambda path: np.zeros(RATE))
     monkeypatch.setattr(client, "health", lambda url: {"ready": True})

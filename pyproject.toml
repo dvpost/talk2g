@@ -13,6 +13,7 @@ dependencies = [
   "soundfile>=0.13,<1",
   "scipy>=1.13,<2",
   "websockets==15.0.1",
+  "tokenizers>=0.22,<1",
 ]
 
 [project.optional-dependencies]

@@ -26,12 +26,19 @@ log = logging.getLogger(__name__)
 
 class DictationServer:
     def __init__(
-        self, settings: Settings, *, recognizer=None, detector_factory=None, home: Path | None = None
+        self,
+        settings: Settings,
+        *,
+        recognizer=None,
+        detector_factory=None,
+        home: Path | None = None,
+        language_model=None,
     ):
         self.settings = settings
         self.home = home
         self.recognizer = recognizer
         self.detector_factory = detector_factory
+        self.language_model = language_model
         self.active = False
         self.loading_error = ""
         self.pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="giga-asr")
@@ -111,10 +118,28 @@ class DictationServer:
                 "quality_window",
                 "quality_interval",
                 "quality_holdback",
+                "lm_rescore",
+                "lm_margin",
             ):
                 if name in start:
                     setattr(settings, name, start[name])
             settings.validate()
+            rescore = None
+            if settings.dual_window and settings.lm_rescore:
+                from .language_model import RussianLanguageModel
+                from .rerank import WindowReranker
+
+                if self.language_model is None:
+                    self.language_model = await asyncio.get_running_loop().run_in_executor(
+                        self.pool, RussianLanguageModel, self.home
+                    )
+                reranker = WindowReranker(self.language_model, settings.lm_margin)
+
+                async def rescore(agreement, words, end):
+                    return await asyncio.get_running_loop().run_in_executor(
+                        self.pool, reranker.select, agreement, words, end
+                    )
+
             segmentation_settings = (
                 replace(
                     settings,
@@ -211,7 +236,14 @@ class DictationServer:
                         segment.trim(int((transcript.frontier - 1.2) * RATE))
                     last_decode_at = time.monotonic()
 
-            await send({"type": "ready", "model": self.settings.model, "dual_window": settings.dual_window})
+            await send(
+                {
+                    "type": "ready",
+                    "model": self.settings.model,
+                    "dual_window": settings.dual_window,
+                    "lm_rescore": rescore is not None,
+                }
+            )
             if settings.dual_window:
 
                 async def decode(audio):
@@ -228,6 +260,7 @@ class DictationServer:
                     lambda: stopped,
                     lambda: sent_bytes,
                     started_at,
+                    rescore,
                 )
                 transcript = processor.transcript
                 worker = asyncio.create_task(processor.run())

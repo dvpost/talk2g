@@ -43,6 +43,8 @@ class Settings:
     quality_window: float = 16.0
     quality_interval: float = 2.5
     quality_holdback: float = 1.2
+    lm_rescore: bool = False
+    lm_margin: float = 0.12
 
     def validate(self) -> None:
         for name in ("server_url", "token", "model", "microphone", "hotkey", "paste_mode"):
@@ -56,6 +58,7 @@ class Settings:
             "autostart",
             "stop_on_phrase",
             "dual_window",
+            "lm_rescore",
         ):
             if type(getattr(self, name)) is not bool:
                 raise ValueError(f"{name}: требуется true или false")
@@ -70,6 +73,7 @@ class Settings:
             "quality_window": (4, 24),
             "quality_interval": (0.5, 8),
             "quality_holdback": (0.2, 3),
+            "lm_margin": (0.01, 2),
         }
         for key, (low, high) in ranges.items():
             value = getattr(self, key)

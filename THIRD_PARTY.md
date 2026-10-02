@@ -10,6 +10,13 @@
   ONNX [istupakov/silero-vad-onnx](https://huggingface.co/istupakov/silero-vad-onnx),
   revision `b3e3ee3cce4c11ceb63b1a0b229d916069c1ddf6`.
 - [onnx-asr](https://github.com/istupakov/onnx-asr), загрузка моделей и препроцессинг, MIT.
+- Экспериментальная [ruGPT3-small](https://huggingface.co/ai-forever/rugpt3small_based_on_gpt2),
+  SberDevices; исходный проект [ru-gpts](https://github.com/ai-forever/ru-gpts)
+  публикует код под Apache-2.0. ONNX-конвертация
+  [onnx-community/rugpt3small_based_on_gpt2-ONNX](https://huggingface.co/onnx-community/rugpt3small_based_on_gpt2-ONNX),
+  revision `90cff9a5ab6afbf331c6b73516fb7346b9330da2`, файл `onnx/model_int8.onnx`.
+  В Git веса не включаются. Tokenizer: Hugging Face tokenizers, Apache-2.0;
+  его закреплённая версия и зависимости указаны в `uv.lock`.
 - ONNX Runtime, NumPy, SciPy, soundfile, sounddevice, websockets, python-xlib,
   dbus-next и huggingface-hub поставляются под своими лицензиями.
   Их версии закреплены в `uv.lock`.

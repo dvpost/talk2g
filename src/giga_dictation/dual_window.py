@@ -24,12 +24,22 @@ class WindowAgreement:
     def quality(self, words, end, *, final=False, forced=False):
         remaining = self.transcript.remaining(words)
         agreed = []
+        for word, closest in zip(remaining, self.aligned(remaining), strict=True):
+            if closest is None or key(closest.text) != key(word.text):
+                self.disagreements += 1
+                break
+            agreed.append(closest)
+        self.transcript.previous = agreed
+        return self.transcript.update(words, end, final=final, forced=forced)
+
+    def aligned(self, words, snapshots=None):
+        aligned = []
         previous_end = -1.0
-        for word in remaining:
+        for word in words:
             snapshot = next(
                 (
                     items
-                    for start, stop, items in reversed(self.fast)
+                    for start, stop, items in reversed(self.fast if snapshots is None else snapshots)
                     if word.start >= start - 0.05 and word.end <= stop + 0.05
                 ),
                 [],
@@ -40,19 +50,18 @@ class WindowAgreement:
                 if abs(other.start - word.start) <= 0.45 and other.end > previous_end + 0.01
             ]
             closest = min(candidates, key=lambda other: abs(other.start - word.start)) if candidates else None
-            if closest is None or key(closest.text) != key(word.text):
-                self.disagreements += 1
-                break
-            agreed.append(closest)
-            previous_end = closest.end
-        self.transcript.previous = agreed
-        return self.transcript.update(words, end, final=final, forced=forced)
+            aligned.append(closest)
+            if closest is not None:
+                previous_end = closest.end
+        return aligned
 
 
 class DualWindowProcessor:
     """One model/worker, two audio contexts; no inference request backlog or editor rewrites."""
 
-    def __init__(self, settings, segmenter, decode, send, changed, stopped, sent_bytes, started_at):
+    def __init__(
+        self, settings, segmenter, decode, send, changed, stopped, sent_bytes, started_at, rescore=None
+    ):
         self.settings = settings
         self.segmenter = segmenter
         self.decode = decode
@@ -61,6 +70,7 @@ class DualWindowProcessor:
         self.stopped = stopped
         self.sent_bytes = sent_bytes
         self.started_at = started_at
+        self.rescore = rescore
         self.agreement = WindowAgreement(max(settings.holdback, settings.quality_holdback))
         self.transcript = self.agreement.transcript
         self.metrics = {
@@ -69,6 +79,14 @@ class DualWindowProcessor:
             "decode_seconds": 0.0,
             "max_buffer_seconds": 0.0,
         }
+        if rescore is not None:
+            self.metrics["language_model"] = {
+                "comparisons": 0,
+                "short_choices": 0,
+                "long_choices": 0,
+                "abstentions": 0,
+                "seconds": 0.0,
+            }
 
     async def recognize(self, audio, offset, kind):
         began = time.monotonic()
@@ -122,9 +140,9 @@ class DualWindowProcessor:
                 await self.wait()
                 continue
             if (
-                not segment.closed
+                (not segment.closed or self.rescore is not None)
                 and segment.end != fast_end
-                and time.monotonic() - fast_at >= self.settings.interval
+                and (segment.closed or time.monotonic() - fast_at >= self.settings.interval)
             ):
                 audio, offset = segment.snapshot()
                 audio_end = offset + len(audio) / RATE
@@ -154,7 +172,28 @@ class DualWindowProcessor:
                 words, duration = await self.recognize(audio, offset, "quality")
                 quality_end = round(audio_end * RATE)
                 final = segment.closed and quality_end == segment.end
-                delta, partial = self.agreement.quality(words, audio_end, final=final, forced=segment.forced)
+                if self.rescore is not None:
+                    selection = await self.rescore(self.agreement, words, audio_end)
+                    details = selection.details
+                    if details["compared"]:
+                        metrics = self.metrics["language_model"]
+                        metrics["comparisons"] += 1
+                        metrics["seconds"] += details["seconds"]
+                        category = {
+                            "short": "short_choices",
+                            "long": "long_choices",
+                            "abstain": "abstentions",
+                        }
+                        metrics[category[details["choice"]]] += 1
+                        await self.send({"type": "rescore", **details})
+                    self.transcript.previous = selection.confirmed
+                    delta, partial = self.transcript.update(
+                        selection.words, audio_end, final=final, forced=segment.forced
+                    )
+                else:
+                    delta, partial = self.agreement.quality(
+                        words, audio_end, final=final, forced=segment.forced
+                    )
                 if delta:
                     await self.send(
                         {

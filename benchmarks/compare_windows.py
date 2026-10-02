@@ -109,7 +109,7 @@ async def replay(url, audio, dual, recognizer, case, overrides=None):
     errors = distance(expected, actual)
     return {
         "case": case["name"],
-        "mode": "dual" if dual else "baseline",
+        "mode": "dual_lm" if (overrides or {}).get("lm_rescore") else "dual" if dual else "baseline",
         "audio_seconds": len(audio) / RATE,
         "reference": case["reference"],
         "text": final["text"],
@@ -150,15 +150,20 @@ async def main(args):
             port = listener.sockets[0].getsockname()[1]
             for case in cases:
                 audio = read_audio(root / case["audio"])
-                for dual in (False, True):
+                modes = [(False, False), (True, False)]
+                if args.with_language_model:
+                    modes.append((True, True))
+                for dual, lm in modes:
                     overrides = {"silence": args.silence} if args.silence is not None else {}
+                    if lm:
+                        overrides["lm_rescore"] = True
                     row = await replay(
                         f"ws://127.0.0.1:{port}/v1/dictate", audio, dual, measured, case, overrides
                     )
                     rows.append(row)
                     print(json.dumps(row, ensure_ascii=False), flush=True)
         aggregate = {}
-        for mode in ("baseline", "dual"):
+        for mode in ("baseline", "dual", "dual_lm") if args.with_language_model else ("baseline", "dual"):
             selected = [row for row in rows if row["mode"] == mode]
             errors = sum(row["word_errors"] for row in selected)
             count = sum(row["reference_words"] for row in selected)
@@ -197,4 +202,7 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=Path, default=Path("benchmarks/dual-window-comparison.json"))
     parser.add_argument("--case", action="append", help="Run only selected case names")
     parser.add_argument("--silence", type=float, help="Override pause detection for continuous-speech stress")
+    parser.add_argument(
+        "--with-language-model", action="store_true", help="Also compare two windows with ruGPT"
+    )
     asyncio.run(main(parser.parse_args()))

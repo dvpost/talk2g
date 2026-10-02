@@ -12,6 +12,7 @@ def test_settings_are_saved_and_loaded_without_changing_other_folders(tmp_path):
         load_on_demand=True,
         stop_on_phrase=True,
         dual_window=True,
+        lm_rescore=True,
         interval=0.9,
     )
     settings.save(tmp_path)
@@ -38,6 +39,9 @@ def test_settings_are_saved_and_loaded_without_changing_other_folders(tmp_path):
         {"quality_window": 5, "fast_window": 5},
         {"quality_interval": float("nan")},
         {"quality_holdback": -1},
+        {"lm_rescore": "true"},
+        {"lm_margin": float("nan")},
+        {"lm_margin": 0},
     ],
 )
 def test_invalid_settings_are_rejected(values):

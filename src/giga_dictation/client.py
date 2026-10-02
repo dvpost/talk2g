@@ -203,6 +203,8 @@ class DictationThread(QThread):
                             "quality_window": self.settings.quality_window,
                             "quality_interval": self.settings.quality_interval,
                             "quality_holdback": self.settings.quality_holdback,
+                            "lm_rescore": self.settings.dual_window and self.settings.lm_rescore,
+                            "lm_margin": self.settings.lm_margin,
                         }
                     )
                 )
@@ -211,6 +213,14 @@ class DictationThread(QThread):
                     raise RuntimeError(response.get("message", "Сервер не готов"))
                 if self.settings.dual_window and response.get("dual_window") is not True:
                     raise RuntimeError("Сервер не поддерживает два окна. Обновите сервер или снимите галочку")
+                if (
+                    self.settings.dual_window
+                    and self.settings.lm_rescore
+                    and response.get("lm_rescore") is not True
+                ):
+                    raise RuntimeError(
+                        "Сервер не поддерживает ruGPT. Обновите сервер или снимите галочку сравнения"
+                    )
                 self.startup_metrics = {
                     "type": "model_ready",
                     "load_wait_seconds": time.monotonic() - self.capture_time,
