@@ -38,6 +38,11 @@ class Settings:
     load_on_demand: bool = False
     autostart: bool = False
     stop_on_phrase: bool = False
+    dual_window: bool = False
+    fast_window: float = 5.0
+    quality_window: float = 16.0
+    quality_interval: float = 2.5
+    quality_holdback: float = 1.2
 
     def validate(self) -> None:
         for name in ("server_url", "token", "model", "microphone", "hotkey", "paste_mode"):
@@ -50,18 +55,30 @@ class Settings:
             "load_on_demand",
             "autostart",
             "stop_on_phrase",
+            "dual_window",
         ):
             if type(getattr(self, name)) is not bool:
                 raise ValueError(f"{name}: требуется true или false")
         if self.paste_mode not in ("auto", "ctrl_v", "ctrl_shift_v", "shift_insert"):
             raise ValueError("Неизвестный способ вставки")
-        ranges = {"interval": (0.25, 5), "holdback": (0.2, 3), "silence": (0.2, 2), "window": (4, 24)}
+        ranges = {
+            "interval": (0.25, 5),
+            "holdback": (0.2, 3),
+            "silence": (0.2, 2),
+            "window": (4, 24),
+            "fast_window": (2, 12),
+            "quality_window": (4, 24),
+            "quality_interval": (0.5, 8),
+            "quality_holdback": (0.2, 3),
+        }
         for key, (low, high) in ranges.items():
             value = getattr(self, key)
             if isinstance(value, bool) or not isinstance(value, (int, float)):
                 raise ValueError(f"{key}: требуется число")
             if not math.isfinite(value) or not low <= value <= high:
                 raise ValueError(f"{key}: допустимо от {low} до {high}")
+        if self.quality_window <= self.fast_window:
+            raise ValueError("Уточняющее окно должно быть больше быстрого")
         if type(self.threads) is not int or not 1 <= self.threads <= 32:
             raise ValueError("threads: допустимо от 1 до 32")
         if self.model not in ("gigaam-v3-e2e-ctc", "gigaam-v3-e2e-rnnt"):

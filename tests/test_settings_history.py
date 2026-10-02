@@ -11,6 +11,7 @@ def test_settings_are_saved_and_loaded_without_changing_other_folders(tmp_path):
         show_overlay=False,
         load_on_demand=True,
         stop_on_phrase=True,
+        dual_window=True,
         interval=0.9,
     )
     settings.save(tmp_path)
@@ -31,6 +32,12 @@ def test_settings_are_saved_and_loaded_without_changing_other_folders(tmp_path):
         {"load_on_demand": "true"},
         {"autostart": "true"},
         {"stop_on_phrase": "true"},
+        {"dual_window": "true"},
+        {"fast_window": 0},
+        {"quality_window": 25},
+        {"quality_window": 5, "fast_window": 5},
+        {"quality_interval": float("nan")},
+        {"quality_holdback": -1},
     ],
 )
 def test_invalid_settings_are_rejected(values):

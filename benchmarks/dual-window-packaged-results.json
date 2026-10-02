@@ -1,0 +1,89 @@
+{
+  "server_absent_before_activation": true,
+  "cold_start_seconds": 2.7102288660025806,
+  "idle_gui_pss_mib": 186.7958984375,
+  "hotkey_modifier_masks": [
+    {
+      "before": 16,
+      "after": 16
+    }
+  ],
+  "active_server_pss_mib": 571.337890625,
+  "first_text_after_audio_seconds": 6.500571143998968,
+  "voice_stop_detected": true,
+  "voice_stop_latency_seconds": 0.7487593800006138,
+  "server_unloaded_after_stop": true,
+  "executable": "/home/vm/pet_project/giga-dictation/dist/GigaDictation/GigaDictation",
+  "recognized_text": "Ничьих, не требуя похвал, счастлив уж я надеждой сладкой, Что дева с трепетом любви посмотрит, может быть украдкой на песни грешные мои. У лукоморья дуб зелёный.",
+  "inserted_text": "Ничьих, не требуя похвал, счастлив уж я надеждой сладкой, Что дева с трепетом любви посмотрит, может быть украдкой на песни грешные мои. У лукоморья дуб зелёный.",
+  "matches": true,
+  "first_insert_seconds": 7.418783252000139,
+  "elapsed_seconds": 16.38087421399905,
+  "audio_source": "PortAudio/PulseAudio monitor",
+  "activation": "global hotkey",
+  "hotkey": "<ctrl>+<shift>+a",
+  "offline": true,
+  "target": "XFCE Terminal",
+  "clipboard_text": "Ничьих, не требуя похвал, счастлив уж я надеждой сладкой, Что дева с трепетом любви посмотрит, может быть украдкой на песни грешные мои. У лукоморья дуб зелёный.",
+  "clipboard_matches": true,
+  "bracketed_paste": true,
+  "load_on_demand": true,
+  "stop_on_phrase": true,
+  "dual_window": true,
+  "startup": {
+    "type": "model_ready",
+    "load_wait_seconds": 3.462706068999978,
+    "activation_seconds": 3.7776189610012807,
+    "buffered_audio_seconds": 3.4,
+    "capturing": true
+  },
+  "stop_to_result_seconds": 0.7322865209971496,
+  "idle_gui_after_stop_pss_mib": 205.8427734375,
+  "first_text_before_stop": true,
+  "owned_server_stopped": true,
+  "sessions": [
+    {
+      "server_absent_before_activation": true,
+      "cold_start_seconds": 2.7102288660025806,
+      "idle_gui_pss_mib": 186.7958984375,
+      "hotkey_modifier_masks": [
+        {
+          "before": 16,
+          "after": 16
+        }
+      ],
+      "active_server_pss_mib": 571.337890625,
+      "first_text_after_audio_seconds": 6.500571143998968,
+      "voice_stop_detected": true,
+      "voice_stop_latency_seconds": 0.7487593800006138,
+      "server_unloaded_after_stop": true,
+      "executable": "/home/vm/pet_project/giga-dictation/dist/GigaDictation/GigaDictation",
+      "recognized_text": "Ничьих, не требуя похвал, счастлив уж я надеждой сладкой, Что дева с трепетом любви посмотрит, может быть украдкой на песни грешные мои. У лукоморья дуб зелёный.",
+      "inserted_text": "Ничьих, не требуя похвал, счастлив уж я надеждой сладкой, Что дева с трепетом любви посмотрит, может быть украдкой на песни грешные мои. У лукоморья дуб зелёный.",
+      "matches": true,
+      "first_insert_seconds": 7.418783252000139,
+      "elapsed_seconds": 16.38087421399905,
+      "audio_source": "PortAudio/PulseAudio monitor",
+      "activation": "global hotkey",
+      "hotkey": "<ctrl>+<shift>+a",
+      "offline": true,
+      "target": "XFCE Terminal",
+      "clipboard_text": "Ничьих, не требуя похвал, счастлив уж я надеждой сладкой, Что дева с трепетом любви посмотрит, может быть украдкой на песни грешные мои. У лукоморья дуб зелёный.",
+      "clipboard_matches": true,
+      "bracketed_paste": true,
+      "load_on_demand": true,
+      "stop_on_phrase": true,
+      "dual_window": true,
+      "startup": {
+        "type": "model_ready",
+        "load_wait_seconds": 3.462706068999978,
+        "activation_seconds": 3.7776189610012807,
+        "buffered_audio_seconds": 3.4,
+        "capturing": true
+      },
+      "stop_to_result_seconds": 0.7322865209971496,
+      "idle_gui_after_stop_pss_mib": 205.8427734375,
+      "first_text_before_stop": true
+    }
+  ]
+}

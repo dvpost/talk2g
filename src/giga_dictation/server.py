@@ -17,6 +17,7 @@ from websockets.http11 import Response
 
 from .audio import Segmenter
 from .config import RATE, Settings
+from .dual_window import DualWindowProcessor
 from .model import GigaRecognizer, SileroDetector, Word
 from .transcript import Transcript
 
@@ -100,11 +101,30 @@ class DictationServer:
                 raise ValueError("Сервер занят другой диктовкой")
             self.active = admitted = True
             settings = replace(self.settings)
-            for name in ("interval", "holdback", "silence", "window"):
+            for name in (
+                "interval",
+                "holdback",
+                "silence",
+                "window",
+                "dual_window",
+                "fast_window",
+                "quality_window",
+                "quality_interval",
+                "quality_holdback",
+            ):
                 if name in start:
                     setattr(settings, name, start[name])
             settings.validate()
-            segmenter = Segmenter(self.detector_factory(), settings)
+            segmentation_settings = (
+                replace(
+                    settings,
+                    window=settings.quality_window,
+                    holdback=max(settings.holdback, settings.quality_holdback),
+                )
+                if settings.dual_window
+                else settings
+            )
+            segmenter = Segmenter(self.detector_factory(), segmentation_settings)
             transcript = Transcript(settings.holdback)
             changed = asyncio.Event()
             stopped = False
@@ -191,8 +211,28 @@ class DictationServer:
                         segment.trim(int((transcript.frontier - 1.2) * RATE))
                     last_decode_at = time.monotonic()
 
-            await send({"type": "ready", "model": self.settings.model})
-            worker = asyncio.create_task(process())
+            await send({"type": "ready", "model": self.settings.model, "dual_window": settings.dual_window})
+            if settings.dual_window:
+
+                async def decode(audio):
+                    return await asyncio.get_running_loop().run_in_executor(
+                        self.pool, self.recognizer.decode, audio
+                    )
+
+                processor = DualWindowProcessor(
+                    settings,
+                    segmenter,
+                    decode,
+                    send,
+                    changed,
+                    lambda: stopped,
+                    lambda: sent_bytes,
+                    started_at,
+                )
+                transcript = processor.transcript
+                worker = asyncio.create_task(processor.run())
+            else:
+                worker = asyncio.create_task(process())
             while not stopped:
                 receive = asyncio.create_task(socket.recv())
                 done, _ = await asyncio.wait((receive, worker), return_when=asyncio.FIRST_COMPLETED)

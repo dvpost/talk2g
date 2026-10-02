@@ -17,8 +17,9 @@ from giga_dictation.server import DictationServer
 
 @pytest.mark.real_model
 @pytest.mark.skipif(not os.environ.get("GIGA_REAL_MODEL_TESTS"), reason="Set GIGA_REAL_MODEL_TESTS=1")
-async def test_real_gigaam_commits_while_audio_is_being_sent_and_flushes_stop():
-    service = DictationServer(Settings())
+@pytest.mark.parametrize("dual_window", [False, True])
+async def test_real_gigaam_commits_while_audio_is_being_sent_and_flushes_stop(dual_window):
+    service = DictationServer(Settings(dual_window=dual_window))
     await service.load()
     assert not service.loading_error
     audio = read_audio(Path(__file__).parent / "fixtures/example.wav")
@@ -66,6 +67,10 @@ async def test_real_gigaam_commits_while_audio_is_being_sent_and_flushes_stop():
         assert "мои" in events[-1]["text"].lower()
         assert "".join(event["delta"] for event in commits) == events[-1]["text"]
         assert [event["seq"] for event in commits] == list(range(1, len(commits) + 1))
+        if dual_window:
+            assert events[-1]["dual_window"]["fast_decodes"] > 0
+            assert events[-1]["dual_window"]["quality_decodes"] > 0
+            assert all(event["source"] == "quality" for event in commits)
         assert time.monotonic() - started < len(audio) / RATE + 5
     finally:
         service.pool.shutdown(wait=True, cancel_futures=True)
