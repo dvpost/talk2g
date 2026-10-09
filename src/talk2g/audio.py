@@ -66,8 +66,8 @@ class SpeechTimeout:
                 self.speech_seen = True
                 self.last_speech = max(self.last_speech, captured_at - len(self.pending) / RATE)
 
-    def remaining(self, now: float) -> float:
-        return max(0.0, min(self.seconds, self.seconds - (now - self.last_speech)))
+    def remaining(self, now: float, enabled_at: float = 0.0) -> float:
+        return max(0.0, min(self.seconds, self.seconds - (now - max(self.last_speech, enabled_at))))
 
 
 @dataclass(eq=False)
@@ -75,13 +75,6 @@ class Segment:
     start: int
     frames: deque = field(default_factory=deque)
     count: int = 0
-    closed: bool = False
-    forced: bool = False
-    decoded_end: int = -1
-
-    @property
-    def end(self) -> int:
-        return self.start + self.count
 
     def append(self, frame: np.ndarray) -> None:
         self.frames.append(frame.copy())
@@ -89,19 +82,6 @@ class Segment:
 
     def snapshot(self) -> tuple[np.ndarray, float]:
         return np.concatenate(self.frames), self.start / RATE
-
-    def trim(self, before: int) -> None:
-        remaining = min(max(0, before - self.start), self.count)
-        while remaining and self.frames:
-            frame = self.frames[0]
-            taken = min(remaining, len(frame))
-            if taken == len(frame):
-                self.frames.popleft()
-            else:
-                self.frames[0] = frame[taken:]
-            self.start += taken
-            self.count -= taken
-            remaining -= taken
 
     def trim_tail(self, samples: int) -> None:
         remaining = min(samples, self.count)
@@ -115,7 +95,7 @@ class Segment:
 
 
 class Segmenter:
-    """Frame-aligned neural VAD; preserve pre-roll, stop tail and forced-cut overlap."""
+    """Frame-aligned neural VAD; submit whole blocks after silence or Stop."""
 
     def __init__(self, detector: Detector, settings: Settings):
         self.detector = detector
@@ -136,9 +116,8 @@ class Segmenter:
         while len(self.pending) >= 512:
             frame, self.pending = self.pending[:512], self.pending[512:]
             self._frame(frame)
-        limit = 300 if self.settings.recognize_on_pause else 60
-        if self.buffered_seconds > limit:
-            raise ValueError(f"Накоплено более {limit} секунд речи. Сделайте паузу или завершите диктовку")
+        if self.buffered_seconds > 300:
+            raise ValueError("Накоплено более 300 секунд речи. Сделайте паузу или завершите диктовку")
 
     @property
     def buffered_seconds(self) -> float:
@@ -165,28 +144,13 @@ class Segmenter:
         self.current.append(frame)
         self.silent_frames = 0 if voiced else self.silent_frames + 1
         self.voice_frames += int(voiced)
-        pause = self.settings.recognition_pause if self.settings.recognize_on_pause else self.settings.silence
-        if self.silent_frames * 512 / RATE >= pause:
-            if self.settings.recognize_on_pause:
-                # Keep a short acoustic tail, rather than passing seconds of silence
-                # to ASR. The archive still retains all accepted PCM samples.
-                self.current.trim_tail(max(0, self.silent_frames * 512 - int(0.3 * RATE)))
+        if self.silent_frames * 512 / RATE >= self.settings.recognition_pause:
+            # Keep a short acoustic tail; the archive retains every accepted PCM sample.
+            self.current.trim_tail(max(0, self.silent_frames * 512 - int(0.3 * RATE)))
             self._close()
-        elif not self.settings.recognize_on_pause and self.current.count / RATE >= self.settings.window:
-            old = self.current
-            old.closed = old.forced = True
-            self.finished.append(old)
-            snapshot, _ = old.snapshot()
-            # Keep the whole unconfirmed tail even when holdback is configured above
-            # its default. Otherwise a larger holdback can drop speech at a forced cut.
-            overlap_seconds = max(1.5, self.settings.holdback + 0.5)
-            overlap = snapshot[-int(overlap_seconds * RATE) :]
-            self.current = Segment(old.end - len(overlap))
-            self.current.append(overlap)
 
     def _close(self) -> None:
         if self.current:
-            self.current.closed = True
             if self.voice_frames >= 3:
                 self.finished.append(self.current)
             self.current = None

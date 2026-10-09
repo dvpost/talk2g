@@ -30,8 +30,6 @@ command = [
     "--collect-all",
     "sounddevice",
     "--collect-submodules",
-    "huggingface_hub",
-    "--collect-submodules",
     "websockets",
     "--hidden-import",
     "dbus_next.aio",

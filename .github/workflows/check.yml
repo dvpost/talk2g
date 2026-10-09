@@ -15,12 +15,16 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libegl1 libopengl0 libportaudio2 desktop-file-utils
+          sudo apt-get install -y libegl1 libopengl0 libportaudio2 libxcb-cursor0 desktop-file-utils xvfb xauth xfwm4 x11-utils x11-xkb-utils dbus-x11 xdotool xfce4-terminal
       - uses: astral-sh/setup-uv@v6
         with:
           version: '0.11.25'
           python-version: '3.12'
       - run: uv sync --frozen --extra desktop --extra dev
-      - run: uv run ruff check src tests benchmarks packaging
-      - run: uv run ruff format --check src tests benchmarks packaging
+      - run: uv run ruff check src tests benchmarks packaging scripts
+      - run: uv run ruff format --check src tests benchmarks packaging scripts
+      - run: uv run python scripts/check_docs.py
       - run: uv run pytest -q
+      - name: Native X11 keyboard and clipboard
+        if: runner.os == 'Linux'
+        run: benchmarks/check_x11.sh -m desktop

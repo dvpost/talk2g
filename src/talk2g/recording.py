@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import json
+import logging
 import wave
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
 from .config import RATE, Settings, project_home
+
+log = logging.getLogger(__name__)
 
 
 def recordings_directory(home: Path | None = None) -> Path:
@@ -38,17 +41,7 @@ class SessionRecording:
             "sample_rate": RATE,
             "channels": 1,
             "format": "pcm16",
-            "settings": {
-                name: getattr(settings, name)
-                for name in (
-                    "interval",
-                    "holdback",
-                    "silence",
-                    "window",
-                    "recognize_on_pause",
-                    "recognition_pause",
-                )
-            },
+            "settings": {"recognition_pause": settings.recognition_pause},
         }
         try:
             audio_path = self.directory / "audio.wav"
@@ -124,7 +117,9 @@ class SessionRecording:
             self._fail(error)
 
     def _fail(self, error: OSError):
+        # EXC-0003: close failed archive, preserve ASR; see docs/exceptional_execution_paths.md.
         self.error = str(error)
+        log.warning("Не удалось сохранить аудио: %s", self.error)
         self.closed = True
         self._close_files()
 
@@ -133,5 +128,5 @@ class SessionRecording:
             if handle is not None:
                 try:
                     handle.close()
-                except OSError:
-                    pass
+                except OSError as error:
+                    log.warning("Не удалось закрыть файл аудиоархива: %s", error)

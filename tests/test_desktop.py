@@ -9,9 +9,9 @@ from pathlib import Path
 import pytest
 from PySide6.QtWidgets import QApplication, QPlainTextEdit
 
-from talk2g.desktop import InsertionQueue
 from talk2g.hotkey import NativeHotkey
 from talk2g.input import foreground, modifiers_pressed
+from talk2g.insertion import InsertionQueue
 
 
 def activate(widget, qtbot):
@@ -294,7 +294,7 @@ def test_hotkey_during_continuous_pasting_never_loses_a_press(qtbot):
 
 @pytest.mark.desktop
 @pytest.mark.skipif(not os.environ.get("TALK2G_DESKTOP_TESTS") or sys.platform != "linux", reason="X11")
-def test_native_progressive_paste_into_xfce_terminal(qtbot, tmp_path):
+def test_native_block_paste_into_xfce_terminal(qtbot, tmp_path):
     output = tmp_path / "received.txt"
     receiver = Path(__file__).parent / "support/terminal_receiver.py"
     terminal = subprocess.Popen(

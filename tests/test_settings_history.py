@@ -17,9 +17,7 @@ def test_settings_are_saved_and_loaded_without_changing_other_folders(tmp_path):
         stop_on_idle=False,
         idle_timeout=90,
         save_recordings=True,
-        recognize_on_pause=False,
         recognition_pause=5,
-        interval=0.9,
     )
     settings.save(tmp_path)
     assert Settings.load(tmp_path) == settings
@@ -29,8 +27,6 @@ def test_settings_are_saved_and_loaded_without_changing_other_folders(tmp_path):
     "values",
     [
         {"threads": True},
-        {"interval": float("inf")},
-        {"silence": -1},
         {"model": "untrusted-model"},
         {"server_url": "ftp://example"},
         {"paste_mode": "unknown"},
@@ -43,7 +39,6 @@ def test_settings_are_saved_and_loaded_without_changing_other_folders(tmp_path):
         {"stop_on_phrase": "true"},
         {"stop_on_idle": "true"},
         {"save_recordings": "true"},
-        {"recognize_on_pause": "true"},
         {"recognition_pause": True},
         {"recognition_pause": 0},
         {"recognition_pause": 11},
@@ -73,6 +68,11 @@ def test_unknown_settings_are_ignored_and_not_saved(tmp_path):
                 "load_on_demand": True,
                 "stop_on_phrase": True,
                 "interval": 0.9,
+                "holdback": 1,
+                "silence": 0.5,
+                "window": 4,
+                "recognize_on_pause": False,
+                "recognition_pause": 5,
                 "unknown_option": True,
                 "unknown_number": 5,
             }
@@ -83,18 +83,19 @@ def test_unknown_settings_are_ignored_and_not_saved(tmp_path):
     assert settings.idle_timeout == 45
     assert settings.overlay_position == "top_right"
     assert settings.stop_on_idle
-    assert settings.recognize_on_pause and settings.recognition_pause == 3
+    assert settings.recognition_pause == 5
     assert not settings.save_recordings
     assert settings == Settings(
         microphone="Микрофон",
         auto_insert=False,
         load_on_demand=True,
         stop_on_phrase=True,
-        interval=0.9,
+        recognition_pause=5,
     )
     settings.save(tmp_path)
     saved = json.loads(path.read_text(encoding="utf-8"))
     assert "unknown_option" not in saved and "unknown_number" not in saved
+    assert not {"interval", "holdback", "silence", "window", "recognize_on_pause"}.intersection(saved)
     assert Settings.load(tmp_path) == settings
 
 

@@ -13,7 +13,10 @@ fi
 shift
 export GIO_USE_VFS=local
 export NO_AT_BRIDGE=1
+export XDG_SESSION_TYPE=x11
+unset WAYLAND_DISPLAY
 export XDG_CONFIG_HOME="$project_dir/.tools/xvfb-config"
+mkdir -p .tools
 xfwm4 --compositor=off > .tools/xvfb-wm.log 2>&1 &
 talk2g_test_wm=$!
 cleanup() {

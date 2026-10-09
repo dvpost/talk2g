@@ -12,7 +12,7 @@ from websockets.asyncio.client import connect
 from websockets.asyncio.server import serve
 from websockets.exceptions import InvalidStatus
 
-from talk2g import server as server_module
+from talk2g import session_output as recording_boundary
 from talk2g.audio import pcm
 from talk2g.config import RATE, Settings
 from talk2g.model import Word
@@ -35,7 +35,7 @@ class Recognizer:
 @pytest_asyncio.fixture
 async def server(tmp_path):
     service = DictationServer(
-        Settings(interval=0.25, holdback=0.2, recognize_on_pause=False),
+        Settings(),
         recognizer=Recognizer(),
         detector_factory=Detector,
         home=tmp_path,
@@ -79,13 +79,11 @@ async def test_pause_mode_waits_for_silence_commits_once_and_flushes_stop_tail(s
 
     service.recognizer.decode = decode
     async with connect(url, proxy=None) as socket:
-        ready = await start(
-            socket, recognize_on_pause=True, recognition_pause=1, window=4, save_recordings=True
-        )
+        ready = await start(socket, recognition_pause=1, save_recordings=True)
         assert ready["recognize_on_pause"] and ready["recognition_pause"] == 1
         receiver = asyncio.create_task(collect(socket, progress))
         await send_audio(socket, np.full(7 * RATE, 0.2))
-        await asyncio.sleep(0.35)  # longer than legacy cadence, speech exceeds legacy window
+        await asyncio.sleep(0.35)
         assert not inputs and not progress
         await send_audio(socket, np.zeros(int(0.6 * RATE)))
         await send_audio(socket, np.full(int(1.2 * RATE), 0.2))
@@ -111,7 +109,7 @@ async def test_pause_mode_waits_for_silence_commits_once_and_flushes_stop_tail(s
     assert "".join(event["delta"] for event in commits) == events[-1]["text"]
     directory = Path(events[-1]["recording_path"])
     info = json.loads((directory / "session.json").read_text(encoding="utf-8"))
-    assert info["settings"]["recognize_on_pause"] and info["settings"]["recognition_pause"] == 1
+    assert info["settings"] == {"recognition_pause": 1}
     journal = [
         json.loads(line) for line in (directory / "events.jsonl").read_text(encoding="utf-8").splitlines()
     ]
@@ -143,7 +141,7 @@ async def test_pause_mode_keeps_new_audio_while_previous_block_is_recognized(ser
     service.recognizer.decode = blocking
     try:
         async with connect(url, proxy=None) as socket:
-            await start(socket, recognize_on_pause=True, recognition_pause=0.5)
+            await start(socket, recognition_pause=0.5)
             await send_audio(socket, np.full(2 * RATE, 0.2))
             await send_audio(socket, np.zeros(RATE))
             assert await asyncio.to_thread(entered.wait, 2)
@@ -172,24 +170,36 @@ async def test_real_duplex_protocol_commits_before_stop_and_flushes_tail(server,
     async with connect(url, proxy=None) as socket:
         ready = await start(socket, **options)
         assert ready["type"] == "ready"
-        assert ready == {"type": "ready", "model": "gigaam-v3-e2e-ctc", "session_id": ""}
+        assert ready == {
+            "type": "ready",
+            "model": "gigaam-v3-e2e-ctc",
+            "session_id": "",
+            "recognize_on_pause": True,
+            "recognition_pause": 3,
+        }
         progress = []
         receive = asyncio.create_task(collect(socket, progress))
         for _ in range(18):
             await socket.send(pcm(np.full(1600, 0.2)))
             await asyncio.sleep(0.06)
         assert not receive.done()
-        # Allow the cadence to deliver a running-window commit.
+        # Речь не вызывает ASR до полной паузы; после неё блок приходит до Stop.
         await asyncio.sleep(0.3)
-        assert any(event["type"] == "commit" for event in progress)
+        assert progress == []
+        await send_audio(socket, np.zeros(4 * RATE))
+        async with asyncio.timeout(2):
+            while not any(event["type"] == "segment_end" for event in progress):
+                await asyncio.sleep(0.01)
+        assert sum(event["type"] == "commit" for event in progress) == 1
+        await send_audio(socket, np.full(int(1.5 * RATE), 0.2))
         await socket.send('{"type":"stop"}')
         events = await asyncio.wait_for(receive, 3)
     commits = [event for event in events if event["type"] == "commit"]
-    assert len(commits) >= 2
-    assert "".join(event["delta"] for event in commits) == "Привет, это проверка."
+    assert len(commits) == 2
+    assert "".join(event["delta"] for event in commits) == "Привет, это проверка. Привет, это проверка."
     assert events[-1]["type"] == "session_end"
-    assert events[-1]["audio_seconds"] == 1.8
-    assert events[-1]["text"] == "Привет, это проверка."
+    assert events[-1]["audio_seconds"] == 7.3
+    assert events[-1]["text"] == "Привет, это проверка. Привет, это проверка."
 
 
 async def test_stop_without_speech_returns_empty_result(server):
@@ -209,10 +219,9 @@ async def test_stop_without_speech_returns_empty_result(server):
     [
         {"version": 2},
         {"rate": 48000},
-        {"interval": float("nan")},
-        {"window": 100},
         {"save_recordings": "true"},
         {"recognize_on_pause": "true"},
+        {"recognize_on_pause": False},
         {"recognition_pause": 0},
         {"recognition_pause": float("inf")},
     ],
@@ -254,6 +263,7 @@ async def test_decoder_failure_reaches_client_without_waiting_for_more_audio(ser
         await start(socket)
         await socket.send(pcm(np.full(RATE, 0.2)))
         await socket.send(pcm(np.full(1600, 0.2)))
+        await send_audio(socket, np.zeros(4 * RATE))
         result = await asyncio.wait_for(collect(socket), 2)
     assert result[-1]["type"] == "error"
     assert result[-1]["message"] == "decoder failed"
@@ -266,39 +276,6 @@ async def test_malformed_audio_packet_does_not_leak_admission(server):
         await socket.send(b"x")
         assert (await collect(socket))[-1]["type"] == "error"
     assert not service.active
-
-
-async def test_stop_during_inference_preserves_audio_arriving_in_parallel(server):
-    service, url = server
-    entered, release = threading.Event(), threading.Event()
-    original = service.recognizer.decode
-    first = True
-
-    def blocking(audio):
-        nonlocal first
-        if first:
-            first = False
-            entered.set()
-            assert release.wait(timeout=3)
-        return original(audio)
-
-    service.recognizer.decode = blocking
-    try:
-        async with connect(url, proxy=None) as socket:
-            await start(socket)
-            await socket.send(pcm(np.full(RATE, 0.2)))
-            await socket.send(pcm(np.full(1600, 0.2)))
-            assert await asyncio.to_thread(entered.wait, 2)
-            await socket.send(pcm(np.full(8000, 0.2)))
-            await socket.send('{"type":"stop"}')
-            await asyncio.sleep(0.05)
-            release.set()
-            events = await asyncio.wait_for(collect(socket), 3)
-        assert events[-1]["text"] == "Привет, это проверка."
-        assert events[-1]["audio_seconds"] == 1.6
-        assert sum(event["type"] == "segment_end" for event in events) == 1
-    finally:
-        release.set()
 
 
 async def test_disconnect_releases_server_for_next_dictation(server):
@@ -327,10 +304,18 @@ async def test_recording_preserves_received_pcm_and_every_actual_model_input(ser
         return original(audio)
 
     service.recognizer.decode = decode
-    audio = np.concatenate([np.zeros(1600), np.linspace(0.05, 0.4, 5 * RATE), np.zeros(10207)])
+    audio = np.concatenate(
+        [
+            np.zeros(1600),
+            np.linspace(0.05, 0.4, 5 * RATE),
+            np.zeros(4 * RATE),
+            np.full(2 * RATE + 207, 0.2),
+            np.zeros(10207),
+        ]
+    )
     packet = pcm(audio)
     async with connect(url, proxy=None) as socket:
-        ready = await start(socket, save_recordings=True, session_id="../../outside", window=4)
+        ready = await start(socket, save_recordings=True, session_id="../../outside")
         directory = Path(ready["recording_path"])
         assert directory.parent == service.home / "recordings"
         for offset in range(0, len(packet), 12800):
@@ -346,17 +331,17 @@ async def test_recording_preserves_received_pcm_and_every_actual_model_input(ser
     assert events[-1]["recording_path"] == str(directory)
     info = json.loads((directory / "session.json").read_text(encoding="utf-8"))
     assert info["status"] == "completed" and info["text"] == events[-1]["text"]
-    assert info["audio_samples"] == len(audio) and info["settings"]["window"] == 4
+    assert info["audio_samples"] == len(audio) and info["settings"] == {"recognition_pause": 3}
     journal = [
         json.loads(line) for line in (directory / "events.jsonl").read_text(encoding="utf-8").splitlines()
     ]
     ranges = [event for event in journal if event["type"] == "decode_start"]
-    assert len(ranges) == info["decode_count"] == len(inputs) >= 2
+    assert len(ranges) == info["decode_count"] == len(inputs) == 2
     received = np.frombuffer(packet, dtype="<i2").astype(np.float32) / 32768
     for event, model_input in zip(ranges, inputs, strict=True):
         np.testing.assert_array_equal(model_input, received[event["start_sample"] : event["end_sample"]])
-    assert any(event["start_sample"] > 0 for event in ranges)  # trimming and overlap retain correct offsets
-    assert any(event["type"] == "decode_end" and event["forced"] for event in journal)
+    assert ranges[0]["end_sample"] <= ranges[1]["start_sample"]
+    assert all(event["final"] for event in journal if event["type"] == "decode_end")
     assert "token" not in info and "token" not in info["settings"]
 
 
@@ -379,6 +364,7 @@ async def test_recordings_are_finalized_on_cancel_disconnect_and_decoder_failure
             await socket.send('{"type":"cancel"}')
             assert (await collect(socket))[-1]["type"] == "cancelled"
         elif outcome == "error":
+            await socket.send('{"type":"stop"}')
             assert (await asyncio.wait_for(collect(socket), 2))[-1]["type"] == "error"
     for _ in range(100):
         if not service.active:
@@ -392,14 +378,17 @@ async def test_recordings_are_finalized_on_cancel_disconnect_and_decoder_failure
 
 
 async def test_recording_creation_failure_does_not_stop_dictation(server, monkeypatch):
+    # GIVEN: создание архива завершается ошибкой доступа.
     _, url = server
 
     def denied(*args):
         raise PermissionError("recordings are read-only")
 
-    monkeypatch.setattr(server_module, "SessionRecording", denied)
+    monkeypatch.setattr(recording_boundary, "SessionRecording", denied)
+    # WHEN: клиент запускает диктовку с сохранением аудио.
     async with connect(url, proxy=None) as socket:
         ready = await start(socket, save_recordings=True)
+        # THEN: ошибка архива сообщается отдельно, распознавание завершается успешно.
         assert ready["type"] == "ready" and "read-only" in ready["recording_error"]
         await socket.send(pcm(np.full(RATE, 0.2)))
         await socket.send(pcm(np.full(8000, 0.2)))
@@ -409,6 +398,7 @@ async def test_recording_creation_failure_does_not_stop_dictation(server, monkey
 
 
 async def test_recording_write_failure_is_reported_once_and_does_not_stop_dictation(server, monkeypatch):
+    # GIVEN: запись принятых пакетов завершается ошибкой диска.
     _, url = server
 
     def full_disk(data):
@@ -419,7 +409,8 @@ async def test_recording_write_failure_is_reported_once_and_does_not_stop_dictat
         monkeypatch.setattr(result.audio, "writeframesraw", full_disk)
         return result
 
-    monkeypatch.setattr(server_module, "SessionRecording", recording)
+    monkeypatch.setattr(recording_boundary, "SessionRecording", recording)
+    # WHEN: клиент передаёт несколько пакетов и останавливает диктовку.
     async with connect(url, proxy=None) as socket:
         await start(socket, save_recordings=True)
         await socket.send(pcm(np.full(RATE, 0.2)))
@@ -427,6 +418,7 @@ async def test_recording_write_failure_is_reported_once_and_does_not_stop_dictat
         await socket.send('{"type":"stop"}')
         events = await asyncio.wait_for(collect(socket), 2)
     errors = [event for event in events if event["type"] == "recording"]
+    # THEN: ошибка сообщается один раз, итоговый текст сохраняется без пути к испорченному архиву.
     assert len(errors) == 1 and errors[0]["status"] == "error" and errors[0]["message"] == "disk full"
     assert events[-1]["type"] == "session_end" and events[-1]["text"] == "Привет, это проверка."
     assert "recording_path" not in events[-1]

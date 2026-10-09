@@ -1,4 +1,4 @@
-"""Real-time continuous speech: bounded windows, ordered commits and stop latency."""
+"""Real-time speech blocks: recognition after pauses, ordered commits and Stop latency."""
 
 import asyncio
 import json
@@ -13,7 +13,8 @@ from talk2g.config import RATE
 
 
 async def main():
-    audio = np.tile(read_audio("tests/fixtures/example.wav"), 4)
+    phrase = read_audio("tests/fixtures/example.wav")
+    audio = np.concatenate([np.tile(np.concatenate([phrase, np.zeros(int(3.5 * RATE))]), 3), phrase])
     events = []
     began = time.monotonic()
     stopped = 0
@@ -25,8 +26,7 @@ async def main():
                     "version": 1,
                     "rate": RATE,
                     "format": "pcm16",
-                    "window": 4,
-                    "recognize_on_pause": False,
+                    "recognition_pause": 3,
                 }
             )
         )
@@ -59,13 +59,14 @@ async def main():
     assert "".join(e["delta"] for e in commits) == final["text"]
     assert [e["seq"] for e in commits] == list(range(1, len(commits) + 1))
     assert final["text"].lower().count("лукоморья") == 4, final["text"]
-    maximum_buffer = max(e["buffer_seconds"] for e in events if e["type"] == "partial")
-    assert maximum_buffer < 7, maximum_buffer
+    maximum_block = max(e["audio_end"] - e["audio_start"] for e in events if e["type"] == "recognizing")
+    assert maximum_block < len(phrase) / RATE + 1, maximum_block
+    assert len(commits) == 4
     report = {
         "audio_seconds": len(audio) / RATE,
         "first_commit_seconds": commits[0]["received_seconds"],
         "stop_latency_seconds": time.monotonic() - stopped,
-        "max_buffer_seconds": maximum_buffer,
+        "max_block_seconds": maximum_block,
         "max_decode_seconds": max(e["decode_seconds"] for e in commits),
         "text": final["text"],
         "commits": len(commits),

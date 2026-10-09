@@ -4,6 +4,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from urllib.error import URLError
 from urllib.parse import urlsplit
 from urllib.request import ProxyHandler, Request, build_opener
 
@@ -35,8 +36,9 @@ class LocalService:
         try:
             health(self.settings.server_url)
             return
-        except Exception:
-            pass
+        except URLError as error:
+            if not isinstance(error.reason, ConnectionRefusedError):
+                raise
         self.home.joinpath(".data").mkdir(parents=True, exist_ok=True)
         self.log_file = self.home.joinpath(".data/server.log").open("a", encoding="utf-8")
         prefix = [sys.executable] if getattr(sys, "frozen", False) else [sys.executable, "-m", "talk2g"]

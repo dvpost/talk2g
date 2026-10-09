@@ -106,8 +106,7 @@ class NativeHotkey:
         errors = []
         connection.set_error_handler(lambda error, request: errors.append(error))
         try:
-            detectable_repeat = enable_detectable_repeat(connection)
-            log.info("X11: определение автоповтора=%s", detectable_repeat)
+            enable_detectable_repeat(connection)
             root.change_attributes(event_mask=X.KeyPressMask | X.KeyReleaseMask)
             for mask in variants:
                 root.grab_key(code, mask, False, X.GrabModeAsync, X.GrabModeAsync)
@@ -116,33 +115,18 @@ class NativeHotkey:
                 raise RuntimeError("Горячая клавиша занята другой программой. Выберите другую в настройках")
             self.ready.set()
             held = False
-            released_at = None
             while not self.stopping.is_set():
                 if not connection.pending_events():
                     select.select([connection.fileno()], [], [], 0.04)
                 while connection.pending_events():
                     event = connection.next_event()
                     if event.type == X.KeyRelease and event.detail == code:
-                        if detectable_repeat:
-                            held = False
-                        else:
-                            released_at = event.time
+                        held = False
                     if (
                         event.type == X.KeyPress
                         and event.detail == code
                         and event.state & modifier_filter == modifiers
                     ):
-                        # X11 auto-repeat synthesizes a release/press pair with
-                        # the same timestamp. A real new press has a later time,
-                        # even if its brief key-up fell between keymap polls.
-                        if (
-                            not detectable_repeat
-                            and held
-                            and released_at is not None
-                            and event.time != released_at
-                        ):
-                            held = False
-                        released_at = None
                         log.info("X11 хоткей: модификаторы=%s, удерживается=%s", event.state, held)
                         if not held:
                             held = True
@@ -153,7 +137,6 @@ class NativeHotkey:
                     keys = connection.query_keymap()
                     if not keys[code // 8] & (1 << (code % 8)):
                         held = False
-                        released_at = None
         finally:
             for mask in variants:
                 root.ungrab_key(code, mask)

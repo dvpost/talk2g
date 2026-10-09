@@ -82,18 +82,21 @@ class WaylandPortal:
         try:
             return await self._authorize_impl()
         except Exception:
-            if self.session:
+            for session in (self.session, self.shortcuts_session):
+                if not session:
+                    continue
                 from dbus_next import Message
 
                 await self.bus.call(
                     Message(
                         destination=self.destination,
-                        path=self.session,
+                        path=session,
                         interface="org.freedesktop.portal.Session",
                         member="Close",
                     )
                 )
             self.session = ""
+            self.shortcuts_session = ""
             self.clipboard = False
             raise
 
@@ -127,49 +130,43 @@ class WaylandPortal:
             if token_path.exists():
                 options["restore_token"] = Variant("s", token_path.read_text().strip())
             await self._request("RemoteDesktop", "SelectDevices", "oa{sv}", [self.session, options])
-            try:
-                await self._call("Clipboard", "RequestClipboard", "oa{sv}", [self.session, {}])
-            except RuntimeError:
-                pass
+            await self._call("Clipboard", "RequestClipboard", "oa{sv}", [self.session, {}])
             result = await self._request("RemoteDesktop", "Start", "osa{sv}", [self.session, "", {}])
             if not result["devices"].value & 1:
-                self.session = ""
                 raise RuntimeError("Портал не разрешил клавиатурный ввод")
             self.clipboard = bool(result.get("clipboard_enabled", Variant("b", False)).value)
+            if not self.clipboard:
+                raise RuntimeError("Портал не разрешил доступ к буферу обмена")
             if restore := result.get("restore_token"):
                 token_path.parent.mkdir(parents=True, exist_ok=True)
                 token_path.write_text(restore.value)
                 token_path.chmod(0o600)
         if not self.shortcuts_session:
-            try:
-                result = await self._request(
-                    "GlobalShortcuts",
-                    "CreateSession",
-                    "a{sv}",
-                    [{"session_handle_token": Variant("s", "talk2g" + uuid.uuid4().hex)}],
-                )
-                self.shortcuts_session = result["session_handle"].value
-                shortcut = [
-                    [
-                        "dictate",
-                        {
-                            "description": Variant("s", "Начать/остановить диктовку"),
-                            "preferred_trigger": Variant("s", "CTRL+ALT+space"),
-                        },
-                    ]
+            result = await self._request(
+                "GlobalShortcuts",
+                "CreateSession",
+                "a{sv}",
+                [{"session_handle_token": Variant("s", "talk2g" + uuid.uuid4().hex)}],
+            )
+            self.shortcuts_session = result["session_handle"].value
+            shortcut = [
+                [
+                    "dictate",
+                    {
+                        "description": Variant("s", "Начать/остановить диктовку"),
+                        "preferred_trigger": Variant("s", "CTRL+ALT+space"),
+                    },
                 ]
-                bound = await self._request(
-                    "GlobalShortcuts",
-                    "BindShortcuts",
-                    "oa(sa{sv})sa{sv}",
-                    [self.shortcuts_session, shortcut, "", {}],
-                )
-                shortcuts = bound.get("shortcuts", Variant("a(sa{sv})", [])).value
-                if not any(item[0] == "dictate" for item in shortcuts):
-                    raise RuntimeError("Хоткей не назначен")
-            except RuntimeError:
-                self.shortcuts_session = ""
-                return "Ввод разрешён. Назначьте в настройках Linux хоткей на run-linux.sh toggle"
+            ]
+            bound = await self._request(
+                "GlobalShortcuts",
+                "BindShortcuts",
+                "oa(sa{sv})sa{sv}",
+                [self.shortcuts_session, shortcut, "", {}],
+            )
+            shortcuts = bound.get("shortcuts", Variant("a(sa{sv})", [])).value
+            if not any(item[0] == "dictate" for item in shortcuts):
+                raise RuntimeError("Хоткей не назначен")
         return "Ввод и горячая клавиша Wayland разрешены"
 
     async def _transfer(self, mime, serial, text):
@@ -196,7 +193,7 @@ class WaylandPortal:
 
     def set_text(self, text: str):
         if not self.clipboard:
-            return False
+            raise RuntimeError("Портал не разрешил доступ к буферу обмена")
         from dbus_next import Variant
 
         async def setting():
@@ -209,7 +206,6 @@ class WaylandPortal:
             )
 
         asyncio.run_coroutine_threadsafe(setting(), self.loop).result(timeout=3)
-        return True
 
     def paste(self):
         if not self.session:

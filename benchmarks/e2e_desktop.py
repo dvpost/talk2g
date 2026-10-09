@@ -98,9 +98,9 @@ def main():
             if target.toPlainText() and first_insert is None:
                 first_insert = time.monotonic() - began
                 target.grab().save("benchmarks/desktop-running.png")
-            if window.thread is None and window.delivery.text and not window.inserter.busy:
+            if window.thread is None and window.dictated_text.text and not window.inserter.busy:
                 actual = target.toPlainText()
-                expected = window.delivery.text
+                expected = window.dictated_text.text
                 result = {
                     "inserted_text": actual,
                     "recognized_text": expected,

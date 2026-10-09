@@ -3,7 +3,6 @@
 import asyncio
 import json
 import os
-import time
 import wave
 from pathlib import Path
 
@@ -39,76 +38,6 @@ def test_real_silero_resets_timeout_on_speech_and_expires_after_silence():
     assert timeout.last_speech == last_speech
     assert timeout.remaining(last_speech + 44) == 1
     assert timeout.remaining(last_speech + 45) == 0
-
-
-@pytest.mark.real_model
-@pytest.mark.skipif(not os.environ.get("TALK2G_REAL_MODEL_TESTS"), reason="Set TALK2G_REAL_MODEL_TESTS=1")
-async def test_real_gigaam_commits_while_audio_is_being_sent_and_flushes_stop(tmp_path):
-    service = DictationServer(Settings(recognize_on_pause=False))
-    await service.load()
-    assert not service.loading_error
-    service.home = tmp_path
-    audio = read_audio(Path(__file__).parent / "fixtures/example.wav")
-    events = []
-    sent_stop = False
-    progressive = False
-    started = time.monotonic()
-    try:
-        async with serve(service.handle, "127.0.0.1", 0) as listener:
-            port = listener.sockets[0].getsockname()[1]
-            async with connect(f"ws://127.0.0.1:{port}", proxy=None) as socket:
-                await socket.send(
-                    json.dumps(
-                        {
-                            "type": "start",
-                            "version": 1,
-                            "rate": RATE,
-                            "format": "pcm16",
-                            "save_recordings": True,
-                        }
-                    )
-                )
-                assert json.loads(await socket.recv())["type"] == "ready"
-
-                async def sending():
-                    nonlocal sent_stop
-                    for offset in range(0, len(audio), 1600):
-                        await socket.send(pcm(audio[offset : offset + 1600]))
-                        await asyncio.sleep(
-                            max(0, started + min(offset + 1600, len(audio)) / RATE - time.monotonic())
-                        )
-                    sent_stop = True
-                    await socket.send('{"type":"stop"}')
-
-                sender = asyncio.create_task(sending())
-                try:
-                    async with asyncio.timeout(30):
-                        async for message in socket:
-                            event = json.loads(message)
-                            events.append(event)
-                            assert event["type"] != "error", event
-                            if event["type"] == "commit" and not sent_stop:
-                                progressive = True
-                            if event["type"] == "session_end":
-                                break
-                finally:
-                    sender.cancel()
-                    await asyncio.gather(sender, return_exceptions=True)
-        commits = [event for event in events if event["type"] == "commit"]
-        assert progressive
-        assert events[-1]["type"] == "session_end"
-        assert "лукоморья" in events[-1]["text"].lower()
-        assert "мои" in events[-1]["text"].lower()
-        assert "".join(event["delta"] for event in commits) == events[-1]["text"]
-        assert [event["seq"] for event in commits] == list(range(1, len(commits) + 1))
-        assert time.monotonic() - started < len(audio) / RATE + 5
-        directory = Path(events[-1]["recording_path"])
-        with wave.open(str(directory / "audio.wav")) as recording:
-            assert recording.readframes(len(audio)) == pcm(audio)
-        info = json.loads((directory / "session.json").read_text(encoding="utf-8"))
-        assert info["status"] == "completed" and info["text"] == events[-1]["text"]
-    finally:
-        service.pool.shutdown(wait=True, cancel_futures=True)
 
 
 @pytest.mark.real_model

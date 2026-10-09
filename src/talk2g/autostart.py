@@ -71,7 +71,7 @@ class Autostart:
                     and not section.getboolean("Hidden", fallback=False)
                     and section.getboolean("X-GNOME-Autostart-enabled", fallback=True)
                 )
-            except (FileNotFoundError, configparser.Error, KeyError, ValueError):
+            except FileNotFoundError:
                 return False
         if self.platform == "win32":
             registry = self._windows_registry()
@@ -96,7 +96,7 @@ class Autostart:
                 "Type=Application\n"
                 "Version=1.0\n"
                 "Name=talk2g\n"
-                "Comment=Local progressive voice typing\n"
+                "Comment=Local voice typing after pauses\n"
                 "Exec=" + " ".join(desktop_argument(part) for part in command) + "\n"
                 "Terminal=false\n"
                 "StartupNotify=false\n"

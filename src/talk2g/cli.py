@@ -14,6 +14,7 @@ from pathlib import Path
 from .audio import Segmenter, pcm, read_audio
 from .config import RATE, Settings, project_home
 from .model import GigaRecognizer, SileroDetector, Word, prepare_models
+from .protocol import read_server_event
 from .transcript import Transcript
 
 
@@ -38,9 +39,11 @@ async def replay(
                 }
             )
         )
-        ready = json.loads(await socket.recv())
+        ready = read_server_event(await socket.recv())
         if ready.get("type") != "ready":
             raise RuntimeError(ready.get("message", "Сервер не готов"))
+        if ready.get("recognize_on_pause") is not True:
+            raise RuntimeError("Сервер не поддерживает распознавание после паузы. Обновите сервер")
 
         async def sender():
             for offset in range(0, len(audio), 1600):
@@ -53,7 +56,7 @@ async def replay(
         sending = asyncio.create_task(sender())
         try:
             async for payload in socket:
-                event = json.loads(payload)
+                event = read_server_event(payload)
                 event["received_seconds"] = time.monotonic() - began
                 events.append(event)
                 if event["type"] == "commit":
@@ -76,30 +79,17 @@ async def replay(
 def transcribe(path: str, settings: Settings) -> str:
     audio = read_audio(path)
     recognizer = GigaRecognizer(settings)
-    transcript = Transcript(settings.holdback)
-    if settings.recognize_on_pause:
-        segmenter = Segmenter(SileroDetector(recognizer.vad_path), settings)
-        for offset in range(0, len(audio) + RATE, RATE):
-            if offset < len(audio):
-                segmenter.feed(pcm(audio[offset : offset + RATE]))
-            else:
-                segmenter.stop()
-            while segmenter.finished:
-                block, start = segmenter.finished.popleft().snapshot()
-                words = [Word(w.text, w.start + start, w.end + start) for w in recognizer.decode(block)]
-                transcript.commit_block(words)
-        return transcript.text
-    step = int(10 * RATE)
-    overlap = int(max(1.5, settings.holdback + 0.5) * RATE)
-    for start in range(0, len(audio), step - overlap):
-        window = audio[start : start + step]
-        words = [
-            Word(w.text, w.start + start / RATE, w.end + start / RATE) for w in recognizer.decode(window)
-        ]
-        is_last = start + step >= len(audio)
-        transcript.update(words, (start + len(window)) / RATE, final=True, forced=not is_last)
-        if is_last:
-            break
+    transcript = Transcript()
+    segmenter = Segmenter(SileroDetector(recognizer.vad_path), settings)
+    for offset in range(0, len(audio) + RATE, RATE):
+        if offset < len(audio):
+            segmenter.feed(pcm(audio[offset : offset + RATE]))
+        else:
+            segmenter.stop()
+        while segmenter.finished:
+            block, start = segmenter.finished.popleft().snapshot()
+            words = [Word(w.text, w.start + start, w.end + start) for w in recognizer.decode(block)]
+            transcript.commit_block(words)
     return transcript.text
 
 
@@ -127,7 +117,7 @@ def doctor() -> dict:
         result["microphone_16khz"] = True
     except Exception as error:
         result["microphone_error"] = str(error)
-    for program in ("xdotool", "wl-copy"):
+    for program in ("xdotool",):
         result[program] = shutil.which(program)
     return result
 
@@ -160,8 +150,7 @@ def main() -> None:
     if getattr(args, "home", None):
         os.environ["TALK2G_HOME"] = str(args.home.expanduser().resolve())
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    for name in ("httpx", "httpcore", "huggingface_hub", "websockets.server"):
-        logging.getLogger(name).setLevel(logging.WARNING)
+    logging.getLogger("websockets.server").setLevel(logging.WARNING)
     try:
         settings = Settings.load()
         settings.token = os.environ.get("TALK2G_TOKEN", settings.token)

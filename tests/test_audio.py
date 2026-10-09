@@ -61,7 +61,7 @@ def test_quieter_speech_after_short_pause_resets_countdown_with_server_vad_hyste
 
 
 def test_capture_keeps_preroll_first_word_and_subframe_stop_tail():
-    settings = Settings(window=4)
+    settings = Settings()
     segmenter = Segmenter(Detector(), settings)
     audio = np.concatenate([np.zeros(1600), np.full(2207, 0.2)]).astype(np.float32)
     packet = pcm(audio)
@@ -76,23 +76,11 @@ def test_capture_keeps_preroll_first_word_and_subframe_stop_tail():
 
 
 def test_silence_ends_phrase_without_waiting_for_recording_stop():
-    segmenter = Segmenter(Detector(), Settings(silence=0.3, recognize_on_pause=False))
+    segmenter = Segmenter(Detector(), Settings(recognition_pause=0.5))
     segmenter.feed(pcm(np.full(RATE, 0.2)))
     segmenter.feed(pcm(np.zeros(RATE)))
     assert segmenter.current is None
     assert len(segmenter.finished) == 1
-    assert segmenter.finished[0].closed
-
-
-def test_long_speech_has_bounded_windows_and_overlap():
-    segmenter = Segmenter(Detector(), Settings(window=4, recognize_on_pause=False))
-    segmenter.feed(pcm(np.full(RATE * 12, 0.2)))
-    segmenter.stop()
-    segments = list(segmenter.finished)
-    assert len(segments) >= 3
-    assert all(s.count <= 4 * RATE + 512 for s in segments)
-    assert all(a.end - b.start == int(1.5 * RATE) for a, b in zip(segments, segments[1:], strict=False))
-    assert segments[-1].end == RATE * 12
 
 
 def test_empty_and_incomplete_pcm_is_refused():
@@ -100,20 +88,6 @@ def test_empty_and_incomplete_pcm_is_refused():
     for packet in (b"", b"x"):
         with pytest.raises(ValueError, match="PCM16"):
             segmenter.feed(packet)
-
-
-def test_large_holdback_keeps_all_unconfirmed_audio_at_forced_cut():
-    settings = Settings(window=4, holdback=3, recognize_on_pause=False)
-    segmenter = Segmenter(Detector(), settings)
-    segmenter.feed(pcm(np.full(RATE * 5, 0.2)))
-    segments = list(segmenter.finished) + [segmenter.current]
-    assert len(segments) >= 2
-    for previous, following in zip(segments, segments[1:], strict=False):
-        # Every sample that was too fresh to commit must still be present in the
-        # following decode, with extra context for words crossing the boundary.
-        unconfirmed_start = previous.end - settings.holdback * RATE
-        assert following.start < unconfirmed_start
-        assert previous.end <= following.end
 
 
 def test_stereo_file_is_resampled_with_right_length(tmp_path):
@@ -127,13 +101,14 @@ def test_stereo_file_is_resampled_with_right_length(tmp_path):
 
 
 def test_pause_mode_accumulates_long_speech_without_window_cuts():
-    segmenter = Segmenter(Detector(), Settings(window=4, recognition_pause=3))
+    segmenter = Segmenter(Detector(), Settings(recognition_pause=3))
     segmenter.feed(pcm(np.full(65 * RATE, 0.2)))
     assert not segmenter.finished
     assert segmenter.current.count > 64 * RATE
     segmenter.stop()
-    assert len(segmenter.finished) == 1 and not segmenter.finished[0].forced
-    assert segmenter.finished[0].end == 65 * RATE
+    assert len(segmenter.finished) == 1
+    captured, offset = segmenter.finished[0].snapshot()
+    assert offset == 0 and len(captured) == 65 * RATE
 
 
 def test_short_pause_resets_and_long_pause_submits_one_complete_block():
@@ -160,3 +135,15 @@ def test_pause_mode_stop_flushes_unexpired_silence_and_every_subframe_sample():
     segmenter.stop()
     captured, _ = segmenter.finished[0].snapshot()
     np.testing.assert_allclose(captured, audio, atol=1 / 16000)
+
+
+def test_continuous_speech_buffer_limit_fails_without_splitting_the_block():
+    # GIVEN: непрерывная речь заполнила разрешённые 300 секунд, паузы и Stop не было.
+    segmenter = Segmenter(Detector(), Settings())
+    segmenter.feed(pcm(np.full(300 * RATE, 0.2)))
+    assert not segmenter.finished and segmenter.buffered_seconds == 300
+    # WHEN: поступают дополнительные кадры речи.
+    with pytest.raises(ValueError, match="более 300 секунд"):
+        segmenter.feed(pcm(np.full(512 * 3, 0.2)))
+    # THEN: явная ошибка сохраняет ограничение памяти, скрытого разрезания на окна нет.
+    assert not segmenter.finished

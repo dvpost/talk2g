@@ -41,6 +41,30 @@ def test_linux_checkbox_detects_external_disabling(tmp_path, flag):
     assert not manager.is_enabled()
 
 
+@pytest.mark.parametrize(
+    ("content", "error"),
+    [
+        pytest.param("invalid desktop entry", configparser.Error, id="invalid-format"),
+        pytest.param("[Other]\nType=Application\n", KeyError, id="missing-section"),
+        pytest.param(
+            "[Desktop Entry]\nType=Application\nExec=talk2g\nHidden=perhaps\n",
+            ValueError,
+            id="invalid-boolean",
+        ),
+    ],
+)
+def test_invalid_autostart_entry_reports_error_instead_of_disabled_state(tmp_path, content, error):
+    # GIVEN: существующий, но некорректный файл автозапуска.
+    manager = Autostart(home=tmp_path, config_dir=tmp_path, platform="linux")
+    manager.entry.parent.mkdir(parents=True)
+    manager.entry.write_text(content)
+    # WHEN: приложение читает состояние автозапуска.
+    with pytest.raises(error):
+        manager.is_enabled()
+    # THEN: ошибка не маскируется выключенной галочкой, исходный файл сохранён.
+    assert manager.entry.read_text() == content
+
+
 @pytest.mark.skipif(sys.platform != "linux" or not shutil.which("gio"), reason="Linux desktop Exec parsing")
 def test_real_desktop_launcher_preserves_spaces_quotes_backslashes_dollars_and_percent(tmp_path):
     # Use the actual desktop launcher as the parser. Shell quoting would give a

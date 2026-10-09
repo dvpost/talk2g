@@ -9,9 +9,9 @@
 - [Silero VAD](https://github.com/snakers4/silero-vad), Silero Team, MIT.
   ONNX [istupakov/silero-vad-onnx](https://huggingface.co/istupakov/silero-vad-onnx),
   revision `b3e3ee3cce4c11ceb63b1a0b229d916069c1ddf6`.
-- [onnx-asr](https://github.com/istupakov/onnx-asr), загрузка моделей и препроцессинг, MIT.
+- [onnx-asr](https://github.com/istupakov/onnx-asr), локальное чтение моделей и препроцессинг, MIT.
 - ONNX Runtime, NumPy, SciPy, soundfile, sounddevice, websockets, python-xlib,
-  dbus-next и huggingface-hub поставляются под своими лицензиями.
+  dbus-next поставляются под своими лицензиями.
   Их версии закреплены в `uv.lock`.
 - PySide6 / Qt имеют отдельные условия LGPL/GPL/commercial. При сборке PyInstaller
   используются отдельные динамические библиотеки Qt; сведения и тексты лицензий

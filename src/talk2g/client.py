@@ -5,6 +5,8 @@ import queue
 import threading
 import time
 import uuid
+from urllib.error import URLError
+from urllib.parse import urlsplit
 
 import numpy as np
 from PySide6.QtCore import QThread, Signal
@@ -13,30 +15,8 @@ from websockets.sync.client import connect
 from .audio import SpeechTimeout, pcm, read_audio
 from .config import RATE, Settings
 from .model import SileroDetector, prepare_vad
+from .protocol import make_start, read_server_event
 from .service import health
-
-
-class Delivery:
-    """De-duplicate server events without pretending desktop insertion is transactional."""
-
-    def __init__(self):
-        self.sequence = 0
-        self.text = ""
-
-    def accept(self, event: dict) -> str:
-        sequence = event["seq"]
-        if type(sequence) is not int or sequence < 1:
-            raise ValueError("Неверный номер фрагмента")
-        if sequence <= self.sequence:
-            return ""
-        if sequence != self.sequence + 1:
-            raise ValueError("Пропущен фрагмент. Диктовка остановлена, полученный текст сохранён")
-        delta = event["delta"]
-        if not isinstance(delta, str):
-            raise ValueError("Неверный текст фрагмента")
-        self.sequence = sequence
-        self.text += delta
-        return delta
 
 
 class DictationThread(QThread):
@@ -100,8 +80,6 @@ class DictationThread(QThread):
             packet = pcm(data[:, 0])
             captured_at = time.monotonic()
             self._enqueue(packet)
-            if not (self._idle_control[0] or self.settings.recognize_on_pause):
-                return
             try:
                 activity_packets.put_nowait((packet, captured_at))
             except queue.Full:
@@ -117,29 +95,23 @@ class DictationThread(QThread):
             self.capture_started.set()
             # Open the microphone before loading the small VAD. Run inference
             # here, outside PortAudio's real-time callback and the UI thread.
-            timeout = None
+            timeout = self._speech_timeout()
             while not self.stop_requested.is_set():
-                if (self._idle_control[0] or self.settings.recognize_on_pause) and timeout is None:
-                    timeout = self._speech_timeout()
                 try:
                     packet, captured_at = activity_packets.get(timeout=0.05)
-                    if timeout is not None:
-                        timeout.feed(packet, captured_at)
+                    timeout.feed(packet, captured_at)
                 except queue.Empty:
                     pass
                 # Catch up with capture timestamps before deciding to stop.
-                if timeout is not None and activity_packets.empty():
+                if activity_packets.empty():
                     self._check_idle_timeout(timeout)
 
     def _speech_timeout(self) -> SpeechTimeout:
-        release_after = (
-            self.settings.recognition_pause if self.settings.recognize_on_pause else self.settings.silence
-        )
         return SpeechTimeout(
             SileroDetector(prepare_vad()),
             self.settings.idle_timeout,
             self.capture_time,
-            release_after=release_after,
+            release_after=self.settings.recognition_pause,
         )
 
     def _check_idle_timeout(self, timeout: SpeechTimeout):
@@ -147,12 +119,11 @@ class DictationThread(QThread):
         if self.stop_requested.is_set():
             return
         now = time.monotonic()
-        if self.settings.recognize_on_pause:
-            remaining = max(0, self.settings.recognition_pause - (now - timeout.last_speech))
-            self.pause_remaining.emit(remaining if timeout.speech_seen else -1)
+        remaining = max(0, self.settings.recognition_pause - (now - timeout.last_speech))
+        self.pause_remaining.emit(remaining if timeout.speech_seen else -1)
         if not enabled:
             return
-        remaining = max(0, timeout.seconds - (now - max(timeout.last_speech, enabled_at)))
+        remaining = timeout.remaining(now, enabled_at)
         self.idle_remaining.emit(remaining)
         if remaining <= 0:
             self.stop()
@@ -163,20 +134,15 @@ class DictationThread(QThread):
         self.capture_time = time.monotonic()
         self.connected.emit()
         self.capture_started.set()
-        timeout = (
-            self._speech_timeout() if self._idle_control[0] or self.settings.recognize_on_pause else None
-        )
+        timeout = self._speech_timeout()
         began = time.monotonic()
         for i in range(0, len(audio), 1600):
             if self.stop_requested.is_set():
                 break
             packet = pcm(audio[i : i + 1600])
             self._enqueue(packet)
-            if self._idle_control[0] or self.settings.recognize_on_pause:
-                if timeout is None:
-                    timeout = self._speech_timeout()
-                timeout.feed(packet, time.monotonic())
-                self._check_idle_timeout(timeout)
+            timeout.feed(packet, time.monotonic())
+            self._check_idle_timeout(timeout)
             end = min(i + 1600, len(audio))
             self.stop_requested.wait(max(0, began + end / RATE - time.monotonic()))
 
@@ -196,6 +162,7 @@ class DictationThread(QThread):
     def _wait_for_server(self) -> bool:
         began = time.monotonic()
         reported = -1
+        # EXC-0001: approved readiness retry; see docs/exceptional_execution_paths.md.
         while not self.cancel_requested.is_set():
             if self.sender_error:
                 raise RuntimeError(self.sender_error)
@@ -205,8 +172,15 @@ class DictationThread(QThread):
                     return True
                 if state.get("error"):
                     raise RuntimeError(state["error"])
-            except OSError:
-                pass  # The on-demand subprocess may not have bound its port yet.
+            except URLError as error:
+                address = urlsplit(self.settings.server_url)
+                starting_local = (
+                    self.settings.load_on_demand
+                    and address.scheme == "ws"
+                    and address.hostname in ("127.0.0.1", "localhost", "::1")
+                )
+                if not starting_local or not isinstance(error.reason, ConnectionRefusedError):
+                    raise
             elapsed = time.monotonic() - began
             if elapsed > 60:
                 raise RuntimeError("Модель не подготовилась за 60 секунд. Проверьте .data/server.log")
@@ -254,44 +228,27 @@ class DictationThread(QThread):
                 close_timeout=3,
                 proxy=None,
             ) as socket:
-                socket.send(
-                    json.dumps(
-                        {
-                            "type": "start",
-                            "version": 1,
-                            "format": "pcm16",
-                            "rate": RATE,
-                            "session_id": str(uuid.uuid4()),
-                            "token": self.settings.token,
-                            "interval": self.settings.interval,
-                            "holdback": self.settings.holdback,
-                            "silence": self.settings.silence,
-                            "window": self.settings.window,
-                            "save_recordings": self.settings.save_recordings,
-                            "recognize_on_pause": self.settings.recognize_on_pause,
-                            "recognition_pause": self.settings.recognition_pause,
-                        }
-                    )
-                )
-                response = json.loads(socket.recv(timeout=15))
+                socket.send(json.dumps(make_start(self.settings, str(uuid.uuid4()))))
+                response = read_server_event(socket.recv(timeout=15))
                 if response.get("type") != "ready":
                     raise RuntimeError(response.get("message", "Сервер не готов"))
-                if self.settings.recognize_on_pause and response.get("recognize_on_pause") is not True:
+                if response.get("recognize_on_pause") is not True:
                     raise RuntimeError("Сервер не поддерживает распознавание после паузы. Обновите сервер")
                 if self.settings.save_recordings:
                     if path := response.get("recording_path"):
                         self.event.emit({"type": "recording", "status": "started", "path": path})
-                    else:
+                    elif response.get("recording_error"):
+                        # EXC-0003: archive failure permits ASR; see docs/exceptional_execution_paths.md.
                         self.event.emit(
                             {
                                 "type": "recording",
                                 "status": "error",
-                                "message": response.get("recording_error")
-                                or (
-                                    "Сервер не поддерживает сохранение записей. "
-                                    "Перезапустите или обновите сервер"
-                                ),
+                                "message": response["recording_error"],
                             }
+                        )
+                    else:
+                        raise RuntimeError(
+                            "Сервер не подтвердил сохранение записи. Перезапустите или обновите сервер"
                         )
                 self.startup_metrics = {
                     "type": "model_ready",
@@ -316,7 +273,7 @@ class DictationThread(QThread):
                 sender.start()
                 while True:
                     try:
-                        response = json.loads(socket.recv(timeout=0.5))
+                        response = read_server_event(socket.recv(timeout=0.5))
                     except TimeoutError:
                         if self.stop_time and time.monotonic() - self.stop_time > 45:
                             raise RuntimeError(

@@ -48,14 +48,15 @@ class PerClientFlags(rq.ReplyRequest):
     )
 
 
-def enable_detectable_repeat(connection) -> bool:
+def enable_detectable_repeat(connection) -> None:
     extension = connection.query_extension("XKEYBOARD")
     if not extension.present:
-        return False
+        raise RuntimeError("Горячая клавиша требует расширение XKB")
     protocol = dict(display=connection.display, opcode=extension.major_opcode)
     if not UseExtension(**protocol, major=1, minor=0).supported:
-        return False
+        raise RuntimeError("Сервер X11 не поддерживает XKB 1.0")
     result = PerClientFlags(
         **protocol, device=0x0100, change=1, value=1, controls_change=0, auto_controls=0, auto_values=0
     )
-    return bool(result.supported & result.value & 1)
+    if not result.supported & result.value & 1:
+        raise RuntimeError("Сервер X11 не поддерживает определение автоповтора XKB")

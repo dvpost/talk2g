@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import logging
+import shutil
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
+from urllib.request import urlopen
 
 import numpy as np
 
@@ -19,10 +21,6 @@ class Word:
     text: str
     start: float
     end: float
-
-
-class Recognizer(Protocol):
-    def decode(self, audio: np.ndarray) -> list[Word]: ...
 
 
 def words_from_tokens(tokens: list[str], times: list[float], duration: float) -> list[Word]:
@@ -47,8 +45,6 @@ def words_from_tokens(tokens: list[str], times: list[float], duration: float) ->
 
 
 def prepare_models(settings: Settings, home: Path | None = None) -> tuple[Path, Path]:
-    from huggingface_hub import snapshot_download
-
     root = (home or project_home()) / "models"
     model_dir = root / (settings.model + "-int8")
     stem = settings.model.removeprefix("gigaam-").replace("-", "_")
@@ -60,28 +56,41 @@ def prepare_models(settings: Settings, home: Path | None = None) -> tuple[Path, 
     names += ["config.json", "LICENSE.txt"]
     if not all((model_dir / name).is_file() for name in names):
         log.info("Скачивание %s (один раз), каталог %s", settings.model, model_dir)
-        snapshot_download(
-            "istupakov/gigaam-v3-onnx",
-            revision=MODEL_REVISION,
-            local_dir=model_dir,
-            allow_patterns=names,
-        )
+        _download_files("istupakov/gigaam-v3-onnx", MODEL_REVISION, model_dir, names)
     return model_dir, prepare_vad(home)
 
 
 def prepare_vad(home: Path | None = None) -> Path:
-    from huggingface_hub import snapshot_download
-
     vad_dir = (home or project_home()) / "models" / "silero-vad"
-    if not (vad_dir / "silero_vad.onnx").is_file():
+    names = ["silero_vad.onnx", "LICENSE.txt"]
+    if not all((vad_dir / name).is_file() for name in names):
         log.info("Скачивание детектора речи Silero VAD")
-        snapshot_download(
-            "istupakov/silero-vad-onnx",
-            revision=VAD_REVISION,
-            local_dir=vad_dir,
-            allow_patterns=["silero_vad.onnx", "LICENSE.txt"],
-        )
+        _download_files("istupakov/silero-vad-onnx", VAD_REVISION, vad_dir, names)
     return vad_dir / "silero_vad.onnx"
+
+
+def _download_files(repository: str, revision: str, directory: Path, names: list[str]):
+    """Fetch each missing pinned asset once; never publish an incomplete download."""
+    directory.mkdir(parents=True, exist_ok=True)
+    for name in names:
+        destination = directory / name
+        if destination.is_file():
+            continue
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(dir=directory, delete=False) as stream:
+                temporary = Path(stream.name)
+                with urlopen(
+                    f"https://huggingface.co/{repository}/resolve/{revision}/{name}", timeout=30
+                ) as response:
+                    shutil.copyfileobj(response, stream)
+                    length = response.headers.get("Content-Length")
+                    if length is not None and stream.tell() != int(length):
+                        raise OSError(f"Неполная загрузка {name}")
+            temporary.replace(destination)
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
 
 
 class GigaRecognizer:
@@ -95,12 +104,18 @@ class GigaRecognizer:
         options.intra_op_num_threads = settings.threads
         options.inter_op_num_threads = 1
         options.log_severity_level = 3
+        onnx_config = {
+            "sess_options": options,
+            "providers": ["CPUExecutionProvider"],
+            "enable_fallback": False,
+        }
         self.model = onnx_asr.load_model(
             settings.model,
             model_dir,
             quantization="int8",
-            sess_options=options,
-            providers=["CPUExecutionProvider"],
+            asr_config=onnx_config,
+            preprocessor_config={"use_numpy_preprocessors": True},
+            resampler_config=onnx_config,
         ).with_timestamps()
         self.decode(np.zeros(RATE, dtype=np.float32))
         log.info("GigaAM готова: %s, CPU INT8, потоков: %d", settings.model, settings.threads)
@@ -109,8 +124,10 @@ class GigaRecognizer:
         if len(audio) < RATE // 10:
             return []
         result = self.model.recognize(np.asarray(audio, dtype=np.float32), sample_rate=RATE)
-        if not result.tokens or result.timestamps is None:
+        if not result.tokens:
             return []
+        if result.timestamps is None:
+            raise ValueError("Модель вернула токены без временных отметок")
         return words_from_tokens(result.tokens, result.timestamps, len(audio) / RATE)
 
 
@@ -122,7 +139,9 @@ class SileroDetector:
         options.intra_op_num_threads = 1
         options.inter_op_num_threads = 1
         options.log_severity_level = 3
-        self.model = ort.InferenceSession(str(path), sess_options=options, providers=["CPUExecutionProvider"])
+        self.model = ort.InferenceSession(
+            str(path), sess_options=options, providers=["CPUExecutionProvider"], enable_fallback=False
+        )
         self.state = np.zeros((2, 1, 128), dtype=np.float32)
         self.context = np.zeros(64, dtype=np.float32)
 

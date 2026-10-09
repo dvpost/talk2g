@@ -68,9 +68,13 @@ def x11_paste(target: str, shortcut: str) -> None:
         # Recheck under the same server lock as the complete chord. Another
         # XTEST client cannot hold Shift halfway through our key sequence.
         active = root.get_full_property(active_atom, X.AnyPropertyType)
-        if target and active is not None and str(active.value[0]) != target:
-            raise FocusChanged("Активное окно изменилось. Оставшийся текст сохранён для копирования")
+        if target:
+            if active is None or not len(active.value):
+                raise FocusChanged("Не удалось проверить активное окно X11. Текст сохранён для копирования")
+            if str(active.value[0]) != target:
+                raise FocusChanged("Активное окно изменилось. Оставшийся текст сохранён для копирования")
         mask = root.query_pointer().mask
+        # EXC-0002: retry is safe only before XTEST input; see docs/exceptional_execution_paths.md.
         if mask & (X.ShiftMask | X.ControlMask | X.Mod1Mask | X.Mod4Mask | X.Mod5Mask):
             raise ModifiersHeld("Дождитесь отпускания клавиш")
         for code in codes:

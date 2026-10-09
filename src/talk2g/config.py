@@ -25,10 +25,6 @@ class Settings:
     token: str = ""
     model: str = "gigaam-v3-e2e-ctc"
     threads: int = 4
-    interval: float = 0.7
-    holdback: float = 0.8
-    silence: float = 0.6
-    window: float = 10.0
     auto_insert: bool = True
     microphone: str = ""
     hotkey: str = "<ctrl>+<shift>+a"
@@ -42,7 +38,6 @@ class Settings:
     stop_on_idle: bool = True
     idle_timeout: int = 45
     save_recordings: bool = False
-    recognize_on_pause: bool = True
     recognition_pause: float = 3.0
 
     def validate(self) -> None:
@@ -66,7 +61,6 @@ class Settings:
             "stop_on_phrase",
             "stop_on_idle",
             "save_recordings",
-            "recognize_on_pause",
         ):
             if type(getattr(self, name)) is not bool:
                 raise ValueError(f"{name}: требуется true или false")
@@ -82,10 +76,6 @@ class Settings:
         ):
             raise ValueError("Неизвестное положение окна диктовки")
         ranges = {
-            "interval": (0.25, 5),
-            "holdback": (0.2, 3),
-            "silence": (0.2, 2),
-            "window": (4, 24),
             "recognition_pause": (0.5, 10),
         }
         for key, (low, high) in ranges.items():
