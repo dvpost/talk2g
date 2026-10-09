@@ -56,7 +56,7 @@ for name in (
     "THIRD_PARTY.md",
     "VALIDATION.md",
     "PROTOCOL.md",
-    "RESEARCH_AND_DESIGN.md",
+    "ARCHITECTURE.md",
 ):
     shutil.copy2(root / name, output / name)
 if (root / "packaging/licenses").is_dir():

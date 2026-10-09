@@ -1,6 +1,6 @@
 # Сторонние компоненты
 
-Приложение написано самостоятельно; код OpenWhispr и других диктовщиков не включён.
+Приложение использует следующие сторонние компоненты.
 
 - [GigaAM](https://github.com/salute-developers/GigaAM), GigaChat Team, MIT.
   ONNX INT8-конвертация [istupakov/gigaam-v3-onnx](https://huggingface.co/istupakov/gigaam-v3-onnx),
@@ -21,11 +21,10 @@
 - `tests/fixtures/example.wav` — официальный демонстрационный файл GigaAM,
   источник: [example.wav](https://cdn.chatwm.opensmodel.sberdevices.ru/GigaAM/example.wav).
   Используется только для проверок распознавания; не требуется при диктовке.
-- Синтетические `dual-technical.wav`, `dual-repetitions.wav`, `dual-names_numbers.wav`
-  и `benchmarks/voice-command.wav` созданы для тестов через
+- `benchmarks/voice-command.wav` создан для тестов через
   [Piper](https://github.com/OHF-Voice/piper1-gpl) и
   [ru_RU-denis-medium](https://huggingface.co/rhasspy/piper-voices/tree/main/ru/ru_RU/denis/medium).
   Карточка голоса указывает CC0 для исходного датасета. Piper и веса голоса
-  не входят в приложение. `dual-long.wav` — три повтора официального примера GigaAM.
+  не входят в приложение.
 
 При распространении сохраняйте тексты лицензий внутри `models` и `licenses`.

@@ -60,7 +60,7 @@ async def collect(socket, result=None):
     "options",
     [
         {},
-        {"dual_window": True, "quality_window": 16, "lm_rescore": True},
+        {"unknown_option": True, "unknown_number": 16},
     ],
 )
 async def test_real_duplex_protocol_commits_before_stop_and_flushes_tail(server, options):
@@ -68,7 +68,7 @@ async def test_real_duplex_protocol_commits_before_stop_and_flushes_tail(server,
     async with connect(url, proxy=None) as socket:
         ready = await start(socket, **options)
         assert ready["type"] == "ready"
-        assert "dual_window" not in ready and "lm_rescore" not in ready
+        assert ready == {"type": "ready", "model": "gigaam-v3-e2e-ctc", "session_id": ""}
         progress = []
         receive = asyncio.create_task(collect(socket, progress))
         for _ in range(18):

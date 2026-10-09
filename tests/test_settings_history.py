@@ -40,7 +40,7 @@ def test_invalid_settings_are_rejected(values):
         Settings(**values).validate()
 
 
-def test_old_experimental_settings_load_and_save_as_regular_dictation(tmp_path):
+def test_unknown_settings_are_ignored_and_not_saved(tmp_path):
     path = tmp_path / ".data" / "settings.json"
     path.parent.mkdir()
     path.write_text(
@@ -51,13 +51,8 @@ def test_old_experimental_settings_load_and_save_as_regular_dictation(tmp_path):
                 "load_on_demand": True,
                 "stop_on_phrase": True,
                 "interval": 0.9,
-                "dual_window": True,
-                "fast_window": 5,
-                "quality_window": 16,
-                "quality_interval": 2.5,
-                "quality_holdback": 1.2,
-                "lm_rescore": True,
-                "lm_margin": 0.12,
+                "unknown_option": True,
+                "unknown_number": 5,
             }
         ),
         encoding="utf-8",
@@ -72,7 +67,7 @@ def test_old_experimental_settings_load_and_save_as_regular_dictation(tmp_path):
     )
     settings.save(tmp_path)
     saved = json.loads(path.read_text(encoding="utf-8"))
-    assert "dual_window" not in saved and "lm_rescore" not in saved
+    assert "unknown_option" not in saved and "unknown_number" not in saved
     assert Settings.load(tmp_path) == settings
 
 

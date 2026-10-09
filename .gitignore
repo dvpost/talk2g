@@ -13,3 +13,6 @@ core
 core.*
 *.log
 benchmarks/*.png
+benchmarks/*-results.json
+benchmarks/*-comparison.json
+benchmarks/replay-events.json
