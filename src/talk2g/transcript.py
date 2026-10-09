@@ -25,6 +25,18 @@ class Transcript:
         self.text = ""
         self.sequence = 0
 
+    def commit_block(self, words: list[Word]) -> str:
+        """Append one independently recognized block, preserving spoken repetitions."""
+        phrase = join_words(words)
+        if not phrase:
+            return ""
+        prefix = " " if self.text and phrase[0] not in ",.;:!?%)]" else ""
+        delta = prefix + phrase
+        self.text += delta
+        self.frontier = words[-1].end
+        self.sequence += 1
+        return delta
+
     def remaining(self, words: list[Word]) -> list[Word]:
         if not self.anchors:
             return words

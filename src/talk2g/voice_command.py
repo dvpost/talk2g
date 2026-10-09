@@ -6,7 +6,7 @@ import re
 class VoiceStop:
     """Filter confirmed text before insertion, retaining a possible split command."""
 
-    command = re.compile(r"(?<!\w)конец[^\w]+связи(?!\w)", re.IGNORECASE)
+    command = re.compile(r"(?<!\w)конец[^\w]+свя?з(?:и(?!\w)|(?=[.!?]))", re.IGNORECASE)
 
     def __init__(self):
         self.pending = ""

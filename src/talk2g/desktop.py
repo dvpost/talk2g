@@ -8,9 +8,10 @@ import threading
 import time
 from collections import deque
 from dataclasses import replace
+from urllib.parse import urlsplit
 
-from PySide6.QtCore import QMimeData, QObject, QSignalBlocker, Qt, QTimer, Signal
-from PySide6.QtGui import QAction, QColor, QFont, QIcon, QPainter, QPixmap
+from PySide6.QtCore import QMimeData, QObject, QRectF, QSignalBlocker, Qt, QTimer, QUrl, Signal
+from PySide6.QtGui import QAction, QColor, QDesktopServices, QFont, QIcon, QPainter, QPainterPath, QPixmap
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtWidgets import (
     QApplication,
@@ -19,7 +20,6 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QFormLayout,
     QFrame,
-    QHBoxLayout,
     QLabel,
     QLineEdit,
     QListWidget,
@@ -29,6 +29,8 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
     QProgressBar,
     QPushButton,
+    QScrollArea,
+    QSpinBox,
     QSystemTrayIcon,
     QTabWidget,
     QVBoxLayout,
@@ -49,6 +51,7 @@ from .input import (
     paste,
     windows_unicode,
 )
+from .recording import recordings_directory
 from .service import LocalService, health
 from .voice_command import VoiceStop
 
@@ -204,8 +207,62 @@ class InsertionQueue(QObject):
             self._fail(error)
 
 
-class Overlay(QFrame):
+class SessionProgress(QWidget):
+    """One countdown: yellow expires at recognition, blue at session completion."""
+
     def __init__(self):
+        super().__init__()
+        self.setFixedHeight(8)
+        self.configure(Settings())
+
+    def configure(self, settings: Settings):
+        self.idle_enabled = settings.stop_on_idle
+        self.pause_enabled = settings.recognize_on_pause
+        self.idle_total = settings.idle_timeout
+        self.pause_total = settings.recognition_pause
+        self.idle_remaining = -1.0
+        self.pause_remaining = -1.0
+        self.hide()
+
+    def fractions(self) -> tuple[float, float]:
+        if self.idle_enabled and self.idle_remaining >= 0:
+            remaining = min(self.idle_remaining, self.idle_total)
+            blue = remaining
+            if self.pause_enabled and self.pause_remaining >= 0:
+                yellow = min(max(0, self.pause_remaining), self.pause_total, remaining)
+                blue = remaining - yellow
+                return blue / self.idle_total, yellow / self.idle_total
+            return blue / self.idle_total, 0.0
+        if self.pause_enabled and self.pause_remaining >= 0:
+            return 0.0, min(self.pause_remaining / self.pause_total, 1.0)
+        return 0.0, 0.0
+
+    def value(self) -> int:
+        return round(1000 * sum(self.fractions()))
+
+    def refresh(self):
+        self.setVisible(
+            (self.idle_enabled and self.idle_remaining >= 0)
+            or (self.pause_enabled and self.pause_remaining >= 0)
+        )
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        bounds = QRectF(self.rect())
+        clip = QPainterPath()
+        clip.addRoundedRect(bounds, 4, 4)
+        painter.setClipPath(clip)
+        painter.fillRect(bounds, QColor("#2c3b57"))
+        blue, yellow = self.fractions()
+        width = bounds.width()
+        painter.fillRect(QRectF(0, 0, width * blue, bounds.height()), QColor("#4775f5"))
+        painter.fillRect(QRectF(width * blue, 0, width * yellow, bounds.height()), QColor("#f6c84a"))
+
+
+class Overlay(QFrame):
+    def __init__(self, position: str = "top_right"):
         flags = (
             Qt.WindowType.Tool
             | Qt.WindowType.FramelessWindowHint
@@ -213,6 +270,7 @@ class Overlay(QFrame):
             | Qt.WindowType.WindowDoesNotAcceptFocus
         )
         super().__init__(None, flags)
+        self._position = position
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         self.setFixedWidth(520)
         self.setStyleSheet("QFrame{background:#182238;border-radius:14px;} QLabel{color:#edf1f9;}")
@@ -222,9 +280,60 @@ class Overlay(QFrame):
         self.preview.setWordWrap(True)
         layout.addWidget(self.state)
         layout.addWidget(self.preview)
+        self.timeout_bar = SessionProgress()
+        layout.addWidget(self.timeout_bar)
+        self.clear_timeout()
         self.resize(520, 95)
-        screen = QApplication.primaryScreen().availableGeometry()
-        self.move(screen.right() - 545, screen.bottom() - 145)
+        screen = QApplication.primaryScreen()
+        if screen is not None:
+            screen.availableGeometryChanged.connect(self._place)
+        self._place()
+
+    def set_position(self, position: str):
+        self._position = position
+        self._place()
+
+    def _place(self, *_):
+        screen = QApplication.primaryScreen()
+        if screen is None:
+            return
+        area = screen.availableGeometry()
+        margin = 24
+        vertical, horizontal = self._position.split("_")
+        x = area.left() + margin if horizontal == "left" else area.right() + 1 - self.width() - margin
+        y = {
+            "top": area.top() + margin,
+            "middle": area.top() + (area.height() - self.height()) // 2,
+            "bottom": area.bottom() + 1 - self.height() - margin,
+        }[vertical]
+        x = max(area.left(), min(x, area.right() + 1 - self.width()))
+        y = max(area.top(), min(y, area.bottom() + 1 - self.height()))
+        self.move(x, y)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._place()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._place()
+
+    def set_timeout(self, remaining: float, total: int):
+        self.timeout_bar.idle_total = total
+        self.timeout_bar.idle_remaining = max(0, remaining)
+        self.timeout_bar.refresh()
+
+    def set_pause(self, remaining: float):
+        self.timeout_bar.pause_remaining = remaining
+        self.timeout_bar.refresh()
+
+    def set_idle_enabled(self, enabled: bool):
+        self.timeout_bar.idle_enabled = enabled
+        self.timeout_bar.idle_remaining = self.timeout_bar.idle_total if enabled else -1
+        self.timeout_bar.refresh()
+
+    def clear_timeout(self):
+        self.timeout_bar.hide()
 
 
 class MainWindow(QMainWindow):
@@ -259,7 +368,7 @@ class MainWindow(QMainWindow):
         self.bridge.toggle.connect(self.toggle)
         self.bridge.health_result.connect(self._health_result)
         self.bridge.permission_result.connect(self._permission_result)
-        self.overlay = Overlay()
+        self.overlay = Overlay(self.settings.overlay_position)
         self.setWindowTitle("talk2g")
         self.setWindowIcon(app_icon())
         self.resize(740, 700)
@@ -299,6 +408,9 @@ class MainWindow(QMainWindow):
             ("load_on_demand", "Загружать модель только при диктовке"),
             ("autostart", "Запускать при входе в систему"),
             ("stop_on_phrase", "Останавливать по фразе «конец связи»"),
+            ("stop_on_idle", "Автозавершение без речи"),
+            ("recognize_on_pause", "Распознавать после паузы"),
+            ("save_recordings", "Сохранять аудиозаписи для разбора ошибок"),
         ):
             action = QAction(label, self)
             action.setCheckable(True)
@@ -343,38 +455,29 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.record)
         instructions = QLabel(
             "Поставьте курсор в нужное приложение и нажмите горячую клавишу.\n"
-            "Подтверждённые слова вводятся во время речи. Последние слова уточняются в виджете."
+            "Сделайте паузу: накопленная речь распознаётся и вводится целым блоком.\n"
+            "Горячая клавиша завершает запись и сразу отправляет оставшуюся речь на распознавание."
         )
         instructions.setWordWrap(True)
         layout.addWidget(instructions)
         self.startup_info = QLabel("")
         self.startup_info.setWordWrap(True)
         layout.addWidget(self.startup_info)
+        self.recording_info = QLabel("")
+        self.recording_info.setWordWrap(True)
+        layout.addWidget(self.recording_info)
         self.meter = QProgressBar()
         self.meter.setRange(0, 100)
         self.meter.setTextVisible(False)
         self.meter.setFixedHeight(8)
         layout.addWidget(self.meter)
-        layout.addWidget(QLabel("Подтверждённый текст"))
+        layout.addWidget(QLabel("Распознанный текст"))
         self.confirmed = QPlainTextEdit()
         self.confirmed.setReadOnly(True)
         layout.addWidget(self.confirmed)
-        layout.addWidget(QLabel("Сейчас уточняется"))
-        self.partial = QPlainTextEdit()
-        self.partial.setReadOnly(True)
-        self.partial.setMaximumHeight(100)
-        layout.addWidget(self.partial)
-        buttons = QHBoxLayout()
-        copy = QPushButton("Скопировать весь текст")
+        copy = QPushButton("Скопировать текст")
         copy.clicked.connect(lambda: QApplication.clipboard().setText(self.delivery.text))
-        buttons.addWidget(copy)
-        rest = QPushButton("Скопировать невведённый остаток")
-        rest.clicked.connect(lambda: QApplication.clipboard().setText(self.remainder))
-        buttons.addWidget(rest)
-        cancel = QPushButton("Прервать")
-        cancel.clicked.connect(lambda: self.thread.cancel() if self.thread else None)
-        buttons.addWidget(cancel)
-        layout.addLayout(buttons)
+        layout.addWidget(copy)
         self.tabs.addTab(widget, "Диктовка")
 
     def _build_settings(self):
@@ -420,6 +523,22 @@ class MainWindow(QMainWindow):
         self.overlay_option = QCheckBox("Показывать синее окно с распознанным текстом")
         self.overlay_option.setChecked(self.settings.show_overlay)
         form.addRow(self.overlay_option)
+        self.overlay_position_field = QComboBox()
+        for label, value in (
+            ("Справа сверху", "top_right"),
+            ("Справа посередине", "middle_right"),
+            ("Справа снизу", "bottom_right"),
+            ("Слева сверху", "top_left"),
+            ("Слева посередине", "middle_left"),
+            ("Слева снизу", "bottom_left"),
+        ):
+            self.overlay_position_field.addItem(label, value)
+        self.overlay_position_field.setCurrentIndex(
+            self.overlay_position_field.findData(self.settings.overlay_position)
+        )
+        self.overlay_position_field.setToolTip("Применяется сразу и сохраняется между запусками.")
+        self.overlay_position_field.currentIndexChanged.connect(self.set_overlay_position)
+        form.addRow("Положение окна диктовки", self.overlay_position_field)
         self.demand_option = QCheckBox("Загружать модель только при диктовке")
         self.demand_option.setChecked(self.settings.load_on_demand)
         form.addRow(self.demand_option)
@@ -439,6 +558,26 @@ class MainWindow(QMainWindow):
             "Произнесите команду и сделайте короткую паузу. Команда завершает диктовку и не попадает в текст."
         )
         form.addRow(self.voice_stop_option)
+        self.idle_stop_option = QCheckBox("Автозавершение без речи")
+        self.idle_stop_option.setChecked(self.settings.stop_on_idle)
+        form.addRow(self.idle_stop_option)
+        self.pause_option = QCheckBox("Распознавать после паузы")
+        self.pause_option.setChecked(self.settings.recognize_on_pause)
+        self.pause_option.setToolTip(
+            "Распознаёт накопленную речь один раз после паузы. "
+            "Новая речь сбрасывает ожидание. Переключение применяется к следующей диктовке."
+        )
+        form.addRow(self.pause_option)
+        self.save_recordings_option = QCheckBox("Сохранять аудиозаписи для разбора ошибок")
+        self.save_recordings_option.setChecked(self.settings.save_recordings)
+        self.save_recordings_option.setToolTip(
+            "Сохраняет полученный сервером WAV и журнал распознавания. "
+            "Изменение применяется к следующей диктовке. По умолчанию выключено."
+        )
+        form.addRow(self.save_recordings_option)
+        self.open_recordings_button = QPushButton("Открыть папку записей")
+        self.open_recordings_button.clicked.connect(self.open_recordings)
+        form.addRow(self.open_recordings_button)
         for checkbox, name in (
             (self.automatic, "auto_insert"),
             (self.copy_final, "copy_on_stop"),
@@ -446,18 +585,31 @@ class MainWindow(QMainWindow):
             (self.demand_option, "load_on_demand"),
             (self.autostart_option, "autostart"),
             (self.voice_stop_option, "stop_on_phrase"),
+            (self.idle_stop_option, "stop_on_idle"),
+            (self.pause_option, "recognize_on_pause"),
+            (self.save_recordings_option, "save_recordings"),
         ):
             checkbox.toggled.connect(lambda checked, name=name: self.set_feature(name, checked))
-        self.interval_field = QDoubleSpinBox()
-        self.interval_field.setRange(0.25, 5)
-        self.interval_field.setSingleStep(0.1)
-        self.interval_field.setValue(self.settings.interval)
-        form.addRow("Интервал распознавания, с", self.interval_field)
-        self.silence_field = QDoubleSpinBox()
-        self.silence_field.setRange(0.2, 2)
-        self.silence_field.setSingleStep(0.1)
-        self.silence_field.setValue(self.settings.silence)
-        form.addRow("Пауза завершения фразы, с", self.silence_field)
+        self.idle_timeout_field = QSpinBox()
+        self.idle_timeout_field.setRange(1, 7200)
+        self.idle_timeout_field.setSuffix(" с")
+        self.idle_timeout_field.setValue(self.settings.idle_timeout)
+        self.idle_timeout_field.setEnabled(self.settings.stop_on_idle)
+        self.idle_timeout_field.setToolTip(
+            "Диктовка завершается после паузы без речи. Новая речь сбрасывает отсчёт. "
+            "По умолчанию — 45 секунд."
+        )
+        form.addRow("Тайм-аут без речи", self.idle_timeout_field)
+        self.recognition_pause_field = QDoubleSpinBox()
+        self.recognition_pause_field.setRange(0.5, 10)
+        self.recognition_pause_field.setSingleStep(0.5)
+        self.recognition_pause_field.setSuffix(" с")
+        self.recognition_pause_field.setValue(self.settings.recognition_pause)
+        self.recognition_pause_field.setEnabled(self.settings.recognize_on_pause)
+        self.recognition_pause_field.setToolTip(
+            "Жёлтая часть полосы отсчитывает паузу до распознавания целого блока. По умолчанию — 3 секунды."
+        )
+        form.addRow("Пауза до распознавания", self.recognition_pause_field)
         save = QPushButton("Сохранить настройки")
         save.clicked.connect(self.save_settings)
         form.addRow(save)
@@ -474,7 +626,20 @@ class MainWindow(QMainWindow):
         )
         note.setWordWrap(True)
         form.addRow(note)
-        self.tabs.addTab(widget, "Настройки")
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidget(widget)
+        self.tabs.addTab(scroll, "Настройки")
+
+    def open_recordings(self):
+        directory = recordings_directory()
+        try:
+            directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+            if not QDesktopServices.openUrl(QUrl.fromLocalFile(str(directory))):
+                raise OSError("Не удалось открыть файловый менеджер")
+        except OSError as error:
+            self.status.setText(f"Папка записей: {error}")
 
     def _build_history(self):
         widget = QWidget()
@@ -604,11 +769,15 @@ class MainWindow(QMainWindow):
                 paste_mode=self.paste_method.currentData(),
                 copy_on_stop=self.copy_final.isChecked(),
                 show_overlay=self.overlay_option.isChecked(),
+                overlay_position=self.overlay_position_field.currentData(),
                 load_on_demand=self.demand_option.isChecked(),
                 autostart=self.autostart_option.isChecked(),
                 stop_on_phrase=self.voice_stop_option.isChecked(),
-                interval=self.interval_field.value(),
-                silence=self.silence_field.value(),
+                stop_on_idle=self.idle_stop_option.isChecked(),
+                idle_timeout=self.idle_timeout_field.value(),
+                save_recordings=self.save_recordings_option.isChecked(),
+                recognize_on_pause=self.pause_option.isChecked(),
+                recognition_pause=self.recognition_pause_field.value(),
             )
             new.validate()
             if not is_wayland():
@@ -663,10 +832,38 @@ class MainWindow(QMainWindow):
             ("load_on_demand", self.demand_option),
             ("autostart", self.autostart_option),
             ("stop_on_phrase", self.voice_stop_option),
+            ("stop_on_idle", self.idle_stop_option),
+            ("recognize_on_pause", self.pause_option),
+            ("save_recordings", self.save_recordings_option),
         ):
             for control in (checkbox, self.feature_actions[name]):
                 with QSignalBlocker(control):
                     control.setChecked(getattr(self.settings, name))
+        self.idle_timeout_field.setEnabled(self.settings.stop_on_idle)
+        self.recognition_pause_field.setEnabled(self.settings.recognize_on_pause)
+        with QSignalBlocker(self.overlay_position_field):
+            self.overlay_position_field.setCurrentIndex(
+                self.overlay_position_field.findData(self.settings.overlay_position)
+            )
+        self.overlay.set_position(self.settings.overlay_position)
+        local = urlsplit(self.settings.server_url).hostname in ("127.0.0.1", "localhost", "::1")
+        self.open_recordings_button.setEnabled(local)
+        self.open_recordings_button.setToolTip(
+            str(recordings_directory()) if local else "Записи сохраняются на компьютере сервера распознавания"
+        )
+
+    def set_overlay_position(self):
+        position = self.overlay_position_field.currentData()
+        if position == self.settings.overlay_position:
+            return
+        try:
+            new = replace(self.settings, overlay_position=position)
+            new.save()
+            self.settings = new
+            self._sync_feature_controls()
+        except Exception as error:
+            self._sync_feature_controls()
+            self.status.setText(f"Не удалось изменить положение окна диктовки: {error}")
 
     def set_feature(self, name: str, enabled: bool):
         if getattr(self.settings, name) == enabled:
@@ -686,6 +883,11 @@ class MainWindow(QMainWindow):
             self._sync_feature_controls()
             if name == "show_overlay":
                 self._sync_overlay()
+            elif name == "stop_on_idle":
+                if self.thread:
+                    self.thread.set_idle_enabled(enabled)
+                    if self.record.isEnabled():
+                        self.overlay.set_idle_enabled(enabled)
             elif name == "stop_on_phrase" and self.thread:
                 self._voice_delta("")  # disabling releases a held ordinary word immediately
             elif name == "auto_insert":
@@ -765,15 +967,45 @@ class MainWindow(QMainWindow):
         )
         self.overlay.state.setText(self.status.text())
         self.overlay.preview.clear()
+        self.overlay.clear_timeout()
         self._sync_overlay()
         QTimer.singleShot(250, self._begin_requested_recording)
 
     def stop_recording(self):
-        if self.thread:
+        if self.thread and self.record.isEnabled():
             self.thread.stop()
+            self.overlay.clear_timeout()
             self.status.setText("Завершаю оставшийся хвост…")
             self.overlay.state.setText("Завершаю оставшийся хвост…")
             self.record.setEnabled(False)
+
+    def _idle_remaining(self, remaining):
+        if (
+            self.thread
+            and self.sender() is self.thread
+            and self.settings.stop_on_idle
+            and not self.quitting
+            and self.record.isEnabled()
+        ):
+            self.overlay.set_timeout(remaining, self.settings.idle_timeout)
+
+    def _idle_expired(self):
+        if self.thread and self.sender() is self.thread and self.settings.stop_on_idle and not self.quitting:
+            log.info("Диктовка остановлена после %s секунд без речи", self.settings.idle_timeout)
+            self.stop_recording()
+            message = f"Пауза {self.settings.idle_timeout} с · завершаю оставшийся хвост…"
+            self.status.setText(message)
+            self.overlay.state.setText(message)
+
+    def _pause_remaining(self, remaining):
+        if (
+            self.thread
+            and self.sender() is self.thread
+            and self.thread.settings.recognize_on_pause
+            and not self.quitting
+            and self.record.isEnabled()
+        ):
+            self.overlay.set_pause(remaining)
 
     def start_recording(self, *, audio_file: str | None = None):
         self.start_pending = False
@@ -806,9 +1038,9 @@ class MainWindow(QMainWindow):
         self.last_error = ""
         self.remainder = ""
         self.confirmed.clear()
-        self.partial.clear()
         self._create_inserter(target)
         self.startup_info.clear()
+        self.recording_info.clear()
         self.thread = DictationThread(
             self.settings, audio_file=audio_file, activated_at=self.activated_at or time.monotonic()
         )
@@ -816,12 +1048,17 @@ class MainWindow(QMainWindow):
         self.thread.event.connect(self._event)
         self.thread.failure.connect(self._failure)
         self.thread.level.connect(lambda value: self.meter.setValue(min(100, int(value * 500))))
+        self.thread.idle_remaining.connect(self._idle_remaining)
+        self.thread.idle_expired.connect(self._idle_expired)
+        self.thread.pause_remaining.connect(self._pause_remaining)
         self.thread.finished.connect(self._finished)
         self.status.setText("Подключаю микрофон…")
         self.record.setText("Остановить диктовку")
         self.record.setEnabled(True)
         self.overlay.state.setText("Слушаю · горячая клавиша — завершить")
         self.overlay.preview.setText("")
+        self.overlay.timeout_bar.configure(self.settings)
+        self.overlay.clear_timeout()
         self._sync_overlay()
         self.tray.setToolTip("talk2g · слушаю · " + hotkey_label(self.settings.hotkey))
         self.thread.start()
@@ -835,7 +1072,14 @@ class MainWindow(QMainWindow):
     def _event(self, event):
         if self.quitting:
             return
-        if event["type"] == "loading":
+        if event["type"] == "recording":
+            if event["status"] == "error":
+                self.recording_info.setText("Не удалось сохранить аудио: " + event["message"])
+                log.warning("Сохранение аудио: %s", event["message"])
+            else:
+                label = "Аудиозапись сохранена" if event["status"] == "saved" else "Сохранение аудио"
+                self.recording_info.setText(f"{label}: {event['path']}")
+        elif event["type"] == "loading":
             state = "Записываю" if event["capturing"] else "Запись остановлена"
             message = (
                 f"{state} · модель загружается {event['seconds']:.1f} с · "
@@ -865,13 +1109,23 @@ class MainWindow(QMainWindow):
                 self.thread.cancel()
                 return
             self._voice_delta(delta)
+        elif event["type"] == "recognizing":
+            message = (
+                "Распознаю блок · запись продолжается"
+                if self.record.isEnabled()
+                else "Распознаю оставшийся блок…"
+            )
+            self.status.setText(message)
+            self.overlay.state.setText(message)
         elif event["type"] == "partial":
             if self.voice_stop.triggered:
                 return
-            self.partial.setPlainText(event["text"])
             self.overlay.preview.setText(self.delivery.text[-130:] + "  " + event["text"])
         elif event["type"] == "segment_end":
-            self.partial.clear()
+            self.overlay.preview.setText(self.delivery.text[-200:])
+            if self.thread and self.record.isEnabled():
+                self.status.setText("Слушаю…")
+                self.overlay.state.setText("Слушаю · горячая клавиша — завершить")
         elif event["type"] == "session_end":
             self._voice_delta("", final=True)
             if event["text"] != self.raw_delivery.text:
@@ -899,7 +1153,6 @@ class MainWindow(QMainWindow):
         self.overlay.preview.setText(self.delivery.text[-200:])
         if stop:
             log.info("Диктовка остановлена голосовой командой")
-            self.partial.clear()
             self.stop_recording()
 
     def _insertion_failure(self, message, text):
@@ -917,6 +1170,7 @@ class MainWindow(QMainWindow):
     def _finished(self):
         if self.quitting or self.thread is None:
             return
+        self.overlay.clear_timeout()
         self._voice_delta("", final=True)
         self.history.add(self.delivery.text)
         self.refresh_history()
@@ -931,13 +1185,13 @@ class MainWindow(QMainWindow):
         self.record.setEnabled(self.ready or self.settings.load_on_demand)
         self.record.setText("Начать диктовку · " + hotkey_label(self.settings.hotkey))
         self.meter.setValue(0)
-        self.partial.clear()
         if not self.last_error:
             self.status.setText(
                 "Диктовка завершена · текст введён"
                 if self.settings.auto_insert and not self.remainder
                 else "Диктовка завершена · текст сохранён в истории"
             )
+            self.overlay.state.setText(self.status.text())
         self.tray.setToolTip("talk2g · " + hotkey_label(self.settings.hotkey))
         QTimer.singleShot(1400, self._hide_finished_overlay)
 

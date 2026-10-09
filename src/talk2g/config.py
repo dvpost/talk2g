@@ -35,12 +35,26 @@ class Settings:
     paste_mode: str = "auto"
     copy_on_stop: bool = True
     show_overlay: bool = True
+    overlay_position: str = "top_right"
     load_on_demand: bool = False
     autostart: bool = False
     stop_on_phrase: bool = False
+    stop_on_idle: bool = True
+    idle_timeout: int = 45
+    save_recordings: bool = False
+    recognize_on_pause: bool = True
+    recognition_pause: float = 3.0
 
     def validate(self) -> None:
-        for name in ("server_url", "token", "model", "microphone", "hotkey", "paste_mode"):
+        for name in (
+            "server_url",
+            "token",
+            "model",
+            "microphone",
+            "hotkey",
+            "paste_mode",
+            "overlay_position",
+        ):
             if not isinstance(getattr(self, name), str):
                 raise ValueError(f"{name}: требуется строка")
         for name in (
@@ -50,16 +64,29 @@ class Settings:
             "load_on_demand",
             "autostart",
             "stop_on_phrase",
+            "stop_on_idle",
+            "save_recordings",
+            "recognize_on_pause",
         ):
             if type(getattr(self, name)) is not bool:
                 raise ValueError(f"{name}: требуется true или false")
         if self.paste_mode not in ("auto", "ctrl_v", "ctrl_shift_v", "shift_insert"):
             raise ValueError("Неизвестный способ вставки")
+        if self.overlay_position not in (
+            "top_right",
+            "middle_right",
+            "bottom_right",
+            "top_left",
+            "middle_left",
+            "bottom_left",
+        ):
+            raise ValueError("Неизвестное положение окна диктовки")
         ranges = {
             "interval": (0.25, 5),
             "holdback": (0.2, 3),
             "silence": (0.2, 2),
             "window": (4, 24),
+            "recognition_pause": (0.5, 10),
         }
         for key, (low, high) in ranges.items():
             value = getattr(self, key)
@@ -69,6 +96,8 @@ class Settings:
                 raise ValueError(f"{key}: допустимо от {low} до {high}")
         if type(self.threads) is not int or not 1 <= self.threads <= 32:
             raise ValueError("threads: допустимо от 1 до 32")
+        if type(self.idle_timeout) is not int or not 1 <= self.idle_timeout <= 7200:
+            raise ValueError("idle_timeout: допустимо от 1 до 7200 секунд")
         if self.model not in ("gigaam-v3-e2e-ctc", "gigaam-v3-e2e-rnnt"):
             raise ValueError("Неизвестная модель GigaAM")
         if not isinstance(self.server_url, str) or not self.server_url.startswith(("ws://", "wss://")):

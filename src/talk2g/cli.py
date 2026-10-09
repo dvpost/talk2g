@@ -11,9 +11,9 @@ import uuid
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-from .audio import pcm, read_audio
+from .audio import Segmenter, pcm, read_audio
 from .config import RATE, Settings, project_home
-from .model import GigaRecognizer, Word, prepare_models
+from .model import GigaRecognizer, SileroDetector, Word, prepare_models
 from .transcript import Transcript
 
 
@@ -77,6 +77,18 @@ def transcribe(path: str, settings: Settings) -> str:
     audio = read_audio(path)
     recognizer = GigaRecognizer(settings)
     transcript = Transcript(settings.holdback)
+    if settings.recognize_on_pause:
+        segmenter = Segmenter(SileroDetector(recognizer.vad_path), settings)
+        for offset in range(0, len(audio) + RATE, RATE):
+            if offset < len(audio):
+                segmenter.feed(pcm(audio[offset : offset + RATE]))
+            else:
+                segmenter.stop()
+            while segmenter.finished:
+                block, start = segmenter.finished.popleft().snapshot()
+                words = [Word(w.text, w.start + start, w.end + start) for w in recognizer.decode(block)]
+                transcript.commit_block(words)
+        return transcript.text
     step = int(10 * RATE)
     overlap = int(max(1.5, settings.holdback + 0.5) * RATE)
     for start in range(0, len(audio), step - overlap):

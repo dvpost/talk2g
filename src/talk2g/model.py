@@ -66,7 +66,13 @@ def prepare_models(settings: Settings, home: Path | None = None) -> tuple[Path, 
             local_dir=model_dir,
             allow_patterns=names,
         )
-    vad_dir = root / "silero-vad"
+    return model_dir, prepare_vad(home)
+
+
+def prepare_vad(home: Path | None = None) -> Path:
+    from huggingface_hub import snapshot_download
+
+    vad_dir = (home or project_home()) / "models" / "silero-vad"
     if not (vad_dir / "silero_vad.onnx").is_file():
         log.info("Скачивание детектора речи Silero VAD")
         snapshot_download(
@@ -75,7 +81,7 @@ def prepare_models(settings: Settings, home: Path | None = None) -> tuple[Path, 
             local_dir=vad_dir,
             allow_patterns=["silero_vad.onnx", "LICENSE.txt"],
         )
-    return model_dir, vad_dir / "silero_vad.onnx"
+    return vad_dir / "silero_vad.onnx"
 
 
 class GigaRecognizer:

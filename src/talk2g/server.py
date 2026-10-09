@@ -18,6 +18,7 @@ from websockets.http11 import Response
 from .audio import Segmenter
 from .config import RATE, Settings
 from .model import GigaRecognizer, SileroDetector, Word
+from .recording import SessionRecording
 from .transcript import Transcript
 
 log = logging.getLogger(__name__)
@@ -79,6 +80,11 @@ class DictationServer:
         admitted = False
         worker = None
         receive = None
+        recording = None
+        recording_error = ""
+        recording_error_sent = False
+        outcome = "disconnected"
+        transcript = None
         try:
             message = await asyncio.wait_for(socket.recv(), timeout=10)
             if not isinstance(message, str):
@@ -105,26 +111,69 @@ class DictationServer:
                 raise ValueError("Сервер занят другой диктовкой")
             self.active = admitted = True
             settings = replace(self.settings)
-            for name in ("interval", "holdback", "silence", "window"):
+            for name in (
+                "interval",
+                "holdback",
+                "silence",
+                "window",
+                "save_recordings",
+                "recognize_on_pause",
+                "recognition_pause",
+            ):
                 if name in start:
                     setattr(settings, name, start[name])
             settings.validate()
             segmenter = Segmenter(self.detector_factory(), settings)
             transcript = Transcript(settings.holdback)
+            if settings.save_recordings:
+                try:
+                    recording = SessionRecording(settings, start.get("session_id", ""), self.home)
+                except OSError as error:
+                    recording_error = str(error)
             changed = asyncio.Event()
             stopped = False
             sent_bytes = 0
             started_at = time.monotonic()
 
+            async def report_recording_error():
+                nonlocal recording_error_sent
+                if recording is None or not recording.error or recording_error_sent:
+                    return
+                recording_error_sent = True
+                log.warning("Не удалось сохранить аудио: %s", recording.error)
+                await socket.send(
+                    json.dumps(
+                        {
+                            "type": "recording",
+                            "status": "error",
+                            "message": recording.error,
+                            "session_id": start.get("session_id", ""),
+                        },
+                        ensure_ascii=False,
+                    )
+                )
+
             async def send(event):
                 event["session_id"] = start.get("session_id", "")
+                if recording is not None:
+                    recording.event(event)
+                    if event["type"] in ("session_end", "cancelled", "error"):
+                        status = {"session_end": "completed", "cancelled": "cancelled", "error": "error"}
+                        recording.finish(status[event["type"]], transcript.text)
+                        if not recording.error:
+                            event["recording_path"] = str(recording.directory)
+                # The first response must remain ready for protocol-v1 clients.
+                if event["type"] != "ready":
+                    await report_recording_error()
                 await socket.send(json.dumps(event, ensure_ascii=False))
+                if event["type"] == "ready":
+                    await report_recording_error()
 
             async def process():
                 last_decode_at = 0.0
                 while True:
                     delay = max(0.0, settings.interval - (time.monotonic() - last_decode_at))
-                    if segmenter.finished or stopped:
+                    if settings.recognize_on_pause or segmenter.finished or stopped:
                         delay = 0
                     if delay:
                         try:
@@ -138,7 +187,11 @@ class DictationServer:
                             and time.monotonic() - last_decode_at < settings.interval
                         ):
                             continue
-                    segment = segmenter.finished.popleft() if segmenter.finished else segmenter.current
+                    segment = (
+                        segmenter.finished.popleft()
+                        if segmenter.finished
+                        else (None if settings.recognize_on_pause else segmenter.current)
+                    )
                     if segment is None or (
                         not segment.closed and (segment.count < RATE or segment.end == segment.decoded_end)
                     ):
@@ -157,6 +210,16 @@ class DictationServer:
                         continue
                     audio, offset = segment.snapshot()
                     snapshot_end = offset + len(audio) / RATE
+                    if settings.recognize_on_pause:
+                        await send(
+                            {
+                                "type": "recognizing",
+                                "audio_start": offset,
+                                "audio_end": snapshot_end,
+                                "capturing": not stopped,
+                            }
+                        )
+                    decode_index = recording.decode_started(offset, len(audio)) if recording else None
                     decode_start = time.monotonic()
                     words = await asyncio.get_running_loop().run_in_executor(
                         self.pool, self.recognizer.decode, audio
@@ -168,10 +231,26 @@ class DictationServer:
                     final = segment.closed and segment.decoded_end == segment.end
                     if final and segment in segmenter.finished:
                         segmenter.finished.remove(segment)
-                    delta, partial = transcript.update(
-                        words, snapshot_end, final=final, forced=segment.forced
-                    )
+                    if settings.recognize_on_pause:
+                        delta, partial = transcript.commit_block(words), ""
+                    else:
+                        delta, partial = transcript.update(
+                            words, snapshot_end, final=final, forced=segment.forced
+                        )
                     duration = time.monotonic() - decode_start
+                    if recording is not None:
+                        recording.event(
+                            {
+                                "type": "decode_end",
+                                "index": decode_index,
+                                "words": [{"text": w.text, "start": w.start, "end": w.end} for w in words],
+                                "delta": delta,
+                                "partial": partial,
+                                "final": final,
+                                "forced": segment.forced,
+                                "decode_seconds": duration,
+                            }
+                        )
                     if delta:
                         await send(
                             {
@@ -182,21 +261,36 @@ class DictationServer:
                                 "decode_seconds": duration,
                             }
                         )
-                    await send(
-                        {
-                            "type": "partial",
-                            "text": partial,
-                            "decode_seconds": duration,
-                            "buffer_seconds": segmenter.buffered_seconds,
-                        }
-                    )
+                    if not settings.recognize_on_pause:
+                        await send(
+                            {
+                                "type": "partial",
+                                "text": partial,
+                                "decode_seconds": duration,
+                                "buffer_seconds": segmenter.buffered_seconds,
+                            }
+                        )
                     if final and not segment.forced:
                         await send({"type": "segment_end"})
-                    if segment is segmenter.current and transcript.frontier > 0:
+                    if (
+                        not settings.recognize_on_pause
+                        and segment is segmenter.current
+                        and transcript.frontier > 0
+                    ):
                         segment.trim(int((transcript.frontier - 1.2) * RATE))
                     last_decode_at = time.monotonic()
 
-            await send({"type": "ready", "model": self.settings.model})
+            ready = {"type": "ready", "model": self.settings.model}
+            if settings.recognize_on_pause:
+                ready["recognize_on_pause"] = True
+                ready["recognition_pause"] = settings.recognition_pause
+            if settings.save_recordings:
+                if recording is not None:
+                    ready["recording_path"] = str(recording.directory)
+                else:
+                    ready["recording_error"] = recording_error
+                    log.warning("Не удалось создать запись аудио: %s", recording_error)
+            await send(ready)
             worker = asyncio.create_task(process())
             while not stopped:
                 receive = asyncio.create_task(socket.recv())
@@ -214,6 +308,9 @@ class DictationServer:
                     if sent_bytes > 2 * RATE * 7200:
                         raise ValueError("Максимальная продолжительность сессии — два часа")
                     segmenter.feed(message)
+                    if recording is not None:
+                        recording.append(message)
+                        await report_recording_error()
                     changed.set()
                 else:
                     control = json.loads(message)
@@ -232,9 +329,16 @@ class DictationServer:
         except ConnectionClosed:
             pass
         except Exception as error:
+            outcome = "error"
             log.warning("Сессия завершена с ошибкой: %s", error)
             try:
-                await socket.send(json.dumps({"type": "error", "message": str(error)}, ensure_ascii=False))
+                event = {"type": "error", "message": str(error)}
+                if recording is not None:
+                    recording.event(event)
+                    recording.finish("error", transcript.text)
+                    if not recording.error:
+                        event["recording_path"] = str(recording.directory)
+                await socket.send(json.dumps(event, ensure_ascii=False))
             except ConnectionClosed:
                 pass
         finally:
@@ -245,6 +349,8 @@ class DictationServer:
                 worker.cancel()
                 await asyncio.gather(worker, return_exceptions=True)
             if admitted:
+                if recording is not None:
+                    recording.finish(outcome, transcript.text)
                 self.active = False
 
     async def run(self, host: str = "127.0.0.1", port: int = 8769):

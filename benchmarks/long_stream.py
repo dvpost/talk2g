@@ -19,7 +19,16 @@ async def main():
     stopped = 0
     async with connect("ws://127.0.0.1:8769/v1/dictate", proxy=None) as socket:
         await socket.send(
-            json.dumps({"type": "start", "version": 1, "rate": RATE, "format": "pcm16", "window": 4})
+            json.dumps(
+                {
+                    "type": "start",
+                    "version": 1,
+                    "rate": RATE,
+                    "format": "pcm16",
+                    "window": 4,
+                    "recognize_on_pause": False,
+                }
+            )
         )
         assert json.loads(await socket.recv())["type"] == "ready"
 

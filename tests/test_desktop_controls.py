@@ -17,15 +17,26 @@ class DictationStub(QObject):
     failure = Signal(str)
     level = Signal(float)
     connected = Signal()
+    idle_remaining = Signal(float)
+    idle_expired = Signal()
+    pause_remaining = Signal(float)
     finished = Signal()
 
     def __init__(self, settings, **kwargs):
         super().__init__()
         self.settings = settings
         self.stop_calls = 0
+        self.idle_changes = []
 
     def start(self):
         self.connected.emit()
+        if self.settings.stop_on_idle:
+            self.idle_remaining.emit(self.settings.idle_timeout)
+
+    def set_idle_enabled(self, enabled):
+        self.idle_changes.append(enabled)
+        if enabled:
+            self.idle_remaining.emit(self.settings.idle_timeout)
 
     def stop(self):
         self.stop_calls += 1
@@ -318,6 +329,227 @@ def test_overlay_can_be_switched_during_dictation(window, qtbot):
     assert window.thread.stop_calls == 0
     window._hide_finished_overlay()
     assert window.overlay.isVisible()  # a previous session's timer cannot hide this one
+
+
+def test_idle_timeout_setting_is_saved_without_restarting_model(window, tmp_path):
+    assert window.idle_timeout_field.value() == 45
+    window.idle_timeout_field.setValue(90)
+    window.save_settings()
+    assert window.settings.idle_timeout == Settings.load(tmp_path).idle_timeout == 90
+    assert window.service.starts == window.service.closes == 0
+
+
+def test_recognition_pause_setting_and_tray_mode_are_saved(window, tmp_path):
+    assert window.recognition_pause_field.value() == 3
+    assert window.pause_option.isChecked() and window.recognition_pause_field.isEnabled()
+    window.recognition_pause_field.setValue(5)
+    window.save_settings()
+    assert Settings.load(tmp_path).recognition_pause == 5
+    action = window.feature_actions["recognize_on_pause"]
+    assert action in window.tray.contextMenu().actions() and action.isChecked()
+    action.trigger()
+    assert not window.pause_option.isChecked() and not window.recognition_pause_field.isEnabled()
+    assert not Settings.load(tmp_path).recognize_on_pause
+    window.pause_option.setChecked(True)
+    assert action.isChecked() and Settings.load(tmp_path).recognition_pause == 5
+    assert window.service.starts == window.service.closes == 0
+
+
+def test_single_bar_has_yellow_recognition_and_blue_session_parts_without_caption(window, qtbot):
+    window.set_feature("auto_insert", False)
+    window.ready = True
+    window.start_recording()
+    thread, bar = window.thread, window.overlay.timeout_bar
+    thread.pause_remaining.emit(3)
+    assert bar.fractions() == pytest.approx((42 / 45, 3 / 45))
+    thread.idle_remaining.emit(43.5)
+    thread.pause_remaining.emit(1.5)
+    assert bar.fractions() == pytest.approx((42 / 45, 1.5 / 45))
+    thread.idle_remaining.emit(42)
+    thread.pause_remaining.emit(0)
+    assert bar.fractions() == pytest.approx((42 / 45, 0))
+    thread.idle_remaining.emit(45)
+    thread.pause_remaining.emit(3)
+    assert bar.value() == 1000
+    assert not hasattr(window.overlay, "countdown")
+    window.stop_recording()
+    thread.pause_remaining.emit(3)
+    assert bar.isHidden()
+
+
+def test_pause_bar_survives_disabling_idle_stop_and_mode_changes_apply_next_session(window, qtbot):
+    window.set_feature("auto_insert", False)
+    window.ready = True
+    window.start_recording()
+    thread = window.thread
+    thread.pause_remaining.emit(1.5)
+    window.set_feature("stop_on_idle", False)
+    bar = window.overlay.timeout_bar
+    assert bar.isVisible() and bar.fractions() == (0, 0.5)
+    window.set_feature("recognize_on_pause", False)
+    assert thread.settings.recognize_on_pause and thread.stop_calls == 0
+    thread.pause_remaining.emit(3)
+    assert bar.fractions() == (0, 1)
+    thread.finished.emit()
+    window.start_recording()
+    assert not window.thread.settings.recognize_on_pause and bar.isHidden()
+
+
+def test_idle_stop_tray_checkbox_syncs_with_settings_and_preserves_timeout(window, tmp_path):
+    action = window.feature_actions["stop_on_idle"]
+    assert action in window.tray.contextMenu().actions()
+    assert action.text() == "Автозавершение без речи" and action.isChecked()
+    window.idle_timeout_field.setValue(90)
+    window.save_settings()
+    action.trigger()
+    assert not window.idle_stop_option.isChecked() and not window.idle_timeout_field.isEnabled()
+    saved = Settings.load(tmp_path)
+    assert not saved.stop_on_idle and saved.idle_timeout == 90
+    window.idle_stop_option.setChecked(True)
+    assert action.isChecked() and window.idle_timeout_field.isEnabled()
+    saved = Settings.load(tmp_path)
+    assert saved.stop_on_idle and saved.idle_timeout == 90
+    assert window.service.starts == window.service.closes == 0
+
+
+def test_save_recordings_checkbox_syncs_persists_and_applies_to_next_session(window, qtbot, tmp_path):
+    action = window.feature_actions["save_recordings"]
+    assert action in window.tray.contextMenu().actions() and not action.isChecked()
+    action.trigger()
+    assert window.save_recordings_option.isChecked() and Settings.load(tmp_path).save_recordings
+    assert window.service.starts == window.service.closes == 0
+    window.set_feature("auto_insert", False)
+    window.ready = True
+    window.toggle()
+    qtbot.waitUntil(lambda: window.thread is not None)
+    thread = window.thread
+    window.save_recordings_option.setChecked(False)
+    assert not action.isChecked() and not Settings.load(tmp_path).save_recordings
+    assert thread.settings.save_recordings and thread.stop_calls == 0
+    thread.finished.emit()
+    window.toggle()
+    qtbot.waitUntil(lambda: window.thread is not None)
+    assert not window.thread.settings.save_recordings
+
+
+def test_recording_status_reports_saved_path_and_errors_without_losing_text(window, qtbot):
+    window.set_feature("auto_insert", False)
+    window.ready = True
+    window.toggle()
+    qtbot.waitUntil(lambda: window.thread is not None)
+    window._event({"type": "recording", "status": "started", "path": "/recordings/session"})
+    assert "/recordings/session" in window.recording_info.text()
+    window._event({"type": "recording", "status": "error", "message": "Диск заполнен"})
+    assert "Диск заполнен" in window.recording_info.text()
+    assert not window.last_error and window.thread.stop_calls == 0
+    window._event({"type": "commit", "seq": 1, "delta": "Сохранённый текст."})
+    window.thread.finished.emit()
+    assert window.history.recent()[0][1] == "Сохранённый текст."
+    window._event({"type": "recording", "status": "saved", "path": "/recordings/session"})
+    assert window.recording_info.text() == "Аудиозапись сохранена: /recordings/session"
+
+
+def test_recordings_button_opens_local_folder_and_is_disabled_for_remote_server(
+    window, monkeypatch, tmp_path
+):
+    opened = []
+    monkeypatch.setattr(desktop.QDesktopServices, "openUrl", lambda url: opened.append(url) or True)
+    window.open_recordings_button.click()
+    assert opened[0].toLocalFile() == str(tmp_path / "recordings")
+    assert (tmp_path / "recordings").is_dir()
+    window.url.setText("wss://example.com/v1/dictate")
+    window.save_settings()
+    assert not window.open_recordings_button.isEnabled()
+
+
+def test_idle_stop_can_be_disabled_and_reenabled_during_dictation(window, qtbot):
+    window.set_feature("auto_insert", False)
+    window.ready = True
+    window.toggle()
+    qtbot.waitUntil(lambda: window.thread is not None)
+    thread = window.thread
+    window.feature_actions["stop_on_idle"].trigger()
+    assert thread.idle_changes == [False] and window.overlay.timeout_bar.isHidden()
+    thread.idle_remaining.emit(0)
+    thread.idle_expired.emit()
+    assert thread.stop_calls == 0 and window.overlay.timeout_bar.isHidden()
+    window.idle_stop_option.setChecked(True)
+    assert thread.idle_changes == [False, True]
+    assert window.overlay.timeout_bar.isVisible() and window.overlay.timeout_bar.value() == 1000
+
+
+def test_disabled_idle_stop_has_no_countdown_when_recording_starts(window, qtbot):
+    window.set_feature("auto_insert", False)
+    window.set_feature("stop_on_idle", False)
+    window.ready = True
+    window.toggle()
+    qtbot.waitUntil(lambda: window.thread is not None)
+    assert window.overlay.isVisible() and window.overlay.timeout_bar.isHidden()
+    assert not window.thread.settings.stop_on_idle
+
+
+def test_idle_countdown_drains_resets_and_timeout_preserves_final_text(window, qtbot):
+    window.set_feature("auto_insert", False)
+    window.ready = True
+    window.toggle()
+    qtbot.waitUntil(lambda: window.thread is not None)
+    thread = window.thread
+    assert window.overlay.timeout_bar.isVisible() and window.overlay.timeout_bar.value() == 1000
+    thread.idle_remaining.emit(22.5)
+    assert window.overlay.timeout_bar.value() == 500
+    assert not hasattr(window.overlay, "countdown")
+    thread.idle_remaining.emit(45)
+    assert window.overlay.timeout_bar.value() == 1000
+    thread.idle_remaining.emit(0)
+    assert window.overlay.timeout_bar.value() == 0
+    thread.idle_expired.emit()
+    assert thread.stop_calls == 1 and not window.record.isEnabled()
+    assert "Пауза 45 с" in window.overlay.state.text()
+    thread.idle_remaining.emit(45)  # queued activity cannot restart a stopped countdown
+    assert window.overlay.timeout_bar.isHidden()
+    window._event({"type": "commit", "seq": 1, "delta": "Последние слова."})
+    window._event({"type": "session_end", "text": "Последние слова."})
+    thread.finished.emit()
+    assert window.thread is None
+    assert window.history.recent()[0][1] == QApplication.clipboard().text() == "Последние слова."
+    qtbot.waitUntil(lambda: not window.overlay.isVisible(), timeout=2000)
+    window.toggle()
+    qtbot.waitUntil(lambda: window.thread is not None)
+    assert window.overlay.timeout_bar.value() == 1000 and window.thread.stop_calls == 0
+
+
+def test_hidden_overlay_still_stops_on_timeout_and_manual_stop_clears_countdown(window, qtbot):
+    window.set_feature("auto_insert", False)
+    window.set_feature("show_overlay", False)
+    window.ready = True
+    window.toggle()
+    qtbot.waitUntil(lambda: window.thread is not None)
+    window.thread.idle_expired.emit()
+    assert window.thread.stop_calls == 1 and not window.overlay.isVisible()
+    window.thread.finished.emit()
+    window.set_feature("show_overlay", True)
+    window.toggle()
+    qtbot.waitUntil(lambda: window.thread is not None)
+    window.toggle()
+    assert window.overlay.timeout_bar.isHidden()
+    window.toggle()
+    assert window.thread.stop_calls == 1
+
+
+def test_old_session_timeout_signals_cannot_stop_new_recording(window, qtbot):
+    window.set_feature("auto_insert", False)
+    window.ready = True
+    window.toggle()
+    qtbot.waitUntil(lambda: window.thread is not None)
+    old = DictationStub(window.settings)
+    old.idle_remaining.connect(window._idle_remaining)
+    old.idle_expired.connect(window._idle_expired)
+    old.pause_remaining.connect(window._pause_remaining)
+    old.pause_remaining.emit(3)
+    old.idle_remaining.emit(0)
+    old.idle_expired.emit()
+    assert window.thread.stop_calls == 0 and window.overlay.timeout_bar.value() == 1000
+    assert window.overlay.timeout_bar.fractions() == (1, 0)
 
 
 def test_disabling_both_outputs_preserves_clipboard_and_keeps_history(window, qtbot):

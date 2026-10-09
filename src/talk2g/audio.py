@@ -32,6 +32,44 @@ class Detector(Protocol):
     def probability(self, frame: np.ndarray) -> float: ...
 
 
+class SpeechTimeout:
+    """Track captured speech time independently of recognition and model loading."""
+
+    def __init__(self, detector: Detector, seconds: float, started_at: float, *, release_after: float = 0.6):
+        self.detector = detector
+        self.seconds = seconds
+        self.last_speech = started_at
+        self.pending = np.empty(0, dtype=np.float32)
+        self.voice_frames = 0
+        self.speech_seen = False
+        self.release_after = release_after
+        self.speech_open = False
+        self.qualified_speech = False
+        self.silent_frames = 0
+
+    def feed(self, data: bytes, captured_at: float) -> None:
+        samples = np.frombuffer(data, dtype="<i2").astype(np.float32) / 32768
+        self.pending = np.concatenate((self.pending, samples))
+        while len(self.pending) >= 512:
+            frame, self.pending = self.pending[:512], self.pending[512:]
+            threshold = 0.35 if self.speech_open else 0.5
+            voiced = self.detector.probability(frame) >= threshold
+            self.voice_frames = self.voice_frames + 1 if voiced else 0
+            self.silent_frames = 0 if voiced else self.silent_frames + 1
+            if voiced:
+                self.speech_open = True
+            elif self.silent_frames * 512 / RATE >= self.release_after:
+                self.speech_open = self.qualified_speech = False
+            # Ignore isolated clicks, as the server's segmenter does.
+            if voiced and (self.voice_frames >= 3 or self.qualified_speech):
+                self.qualified_speech = True
+                self.speech_seen = True
+                self.last_speech = max(self.last_speech, captured_at - len(self.pending) / RATE)
+
+    def remaining(self, now: float) -> float:
+        return max(0.0, min(self.seconds, self.seconds - (now - self.last_speech)))
+
+
 @dataclass(eq=False)
 class Segment:
     start: int
@@ -65,6 +103,16 @@ class Segment:
             self.count -= taken
             remaining -= taken
 
+    def trim_tail(self, samples: int) -> None:
+        remaining = min(samples, self.count)
+        while remaining and self.frames:
+            frame = self.frames.pop()
+            taken = min(remaining, len(frame))
+            if taken < len(frame):
+                self.frames.append(frame[:-taken])
+            self.count -= taken
+            remaining -= taken
+
 
 class Segmenter:
     """Frame-aligned neural VAD; preserve pre-roll, stop tail and forced-cut overlap."""
@@ -88,8 +136,9 @@ class Segmenter:
         while len(self.pending) >= 512:
             frame, self.pending = self.pending[:512], self.pending[512:]
             self._frame(frame)
-        if self.buffered_seconds > 60:
-            raise ValueError("Сервер отстаёт более чем на 60 секунд. Завершите диктовку и уменьшите нагрузку")
+        limit = 300 if self.settings.recognize_on_pause else 60
+        if self.buffered_seconds > limit:
+            raise ValueError(f"Накоплено более {limit} секунд речи. Сделайте паузу или завершите диктовку")
 
     @property
     def buffered_seconds(self) -> float:
@@ -116,9 +165,14 @@ class Segmenter:
         self.current.append(frame)
         self.silent_frames = 0 if voiced else self.silent_frames + 1
         self.voice_frames += int(voiced)
-        if self.silent_frames * 512 / RATE >= self.settings.silence:
+        pause = self.settings.recognition_pause if self.settings.recognize_on_pause else self.settings.silence
+        if self.silent_frames * 512 / RATE >= pause:
+            if self.settings.recognize_on_pause:
+                # Keep a short acoustic tail, rather than passing seconds of silence
+                # to ASR. The archive still retains all accepted PCM samples.
+                self.current.trim_tail(max(0, self.silent_frames * 512 - int(0.3 * RATE)))
             self._close()
-        elif self.current.count / RATE >= self.settings.window:
+        elif not self.settings.recognize_on_pause and self.current.count / RATE >= self.settings.window:
             old = self.current
             old.closed = old.forced = True
             self.finished.append(old)
