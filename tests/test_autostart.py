@@ -6,7 +6,7 @@ import time
 
 import pytest
 
-from giga_dictation.autostart import RUN_KEY, VALUE_NAME, Autostart
+from talk2g.autostart import RUN_KEY, VALUE_NAME, Autostart
 
 
 def test_linux_enable_disable_is_idempotent_and_preserves_other_autostart_entries(tmp_path):
@@ -63,9 +63,9 @@ def test_real_desktop_launcher_preserves_spaces_quotes_backslashes_dollars_and_p
 
 def test_xdg_override_and_frozen_command_keep_correct_profile(monkeypatch, tmp_path):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "custom-config"))
-    executable = str(tmp_path / "GigaDictation")
+    executable = str(tmp_path / "talk2g")
     manager = Autostart(home=tmp_path / "profile", executable=executable, platform="linux", frozen=True)
-    assert manager.entry == tmp_path / "custom-config/autostart/giga-dictation.desktop"
+    assert manager.entry == tmp_path / "custom-config/autostart/talk2g.desktop"
     assert manager.command() == [
         executable,
         "app",
@@ -139,7 +139,7 @@ def test_windows_run_key_uses_windowless_python_and_preserves_other_entries(tmp_
     manager.set_enabled(True)
     assert manager.is_enabled()
     command = registry.values[RUN_KEY][VALUE_NAME][0]
-    assert 'pythonw.exe" -m giga_dictation app --background --home' in command
+    assert 'pythonw.exe" -m talk2g app --background --home' in command
     manager.set_enabled(False)
     manager.set_enabled(False)
     assert not manager.is_enabled()
@@ -152,7 +152,7 @@ def test_windows_rejects_overlong_run_command_before_modifying_registry(tmp_path
         home=tmp_path / ("a" * 230),
         platform="win32",
         registry=registry,
-        executable="C:/GigaDictation.exe",
+        executable="C:/talk2g.exe",
         frozen=True,
     )
     with pytest.raises(ValueError, match="слишком длинный"):

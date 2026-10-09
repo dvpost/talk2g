@@ -38,7 +38,7 @@ class DictationServer:
         self.detector_factory = detector_factory
         self.active = False
         self.loading_error = ""
-        self.pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="giga-asr")
+        self.pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="talk2g-asr")
 
     async def load(self) -> None:
         if self.recognizer is not None:
@@ -59,7 +59,7 @@ class DictationServer:
         if request.path == "/health":
             body = json.dumps(
                 {
-                    "app": "giga-dictation",
+                    "app": "talk2g",
                     "protocol": 1,
                     "ready": self.recognizer is not None,
                     "model": self.settings.model,
@@ -250,7 +250,7 @@ class DictationServer:
     async def run(self, host: str = "127.0.0.1", port: int = 8769):
         self.settings.validate()
         if host not in ("127.0.0.1", "localhost", "::1") and not self.settings.token:
-            raise ValueError("Для сетевого сервера задайте GIGA_DICTATION_TOKEN")
+            raise ValueError("Для сетевого сервера задайте TALK2G_TOKEN")
         try:
             async with serve(
                 self.handle,

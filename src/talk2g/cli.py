@@ -121,7 +121,7 @@ def doctor() -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Giga Dictation — локальная потоковая диктовка")
+    parser = argparse.ArgumentParser(prog="talk2g", description="talk2g — локальная потоковая диктовка")
     sub = parser.add_subparsers(dest="command")
     app_parser = sub.add_parser("app", help="Приложение, локальный сервер запускается автоматически")
     app_parser.add_argument("--background", action="store_true", help="Запустить в системном трее")
@@ -146,13 +146,13 @@ def main() -> None:
     replay_parser.add_argument("--events", help="Сохранить события и задержки в JSON")
     args = parser.parse_args()
     if getattr(args, "home", None):
-        os.environ["GIGA_DICTATION_HOME"] = str(args.home.expanduser().resolve())
+        os.environ["TALK2G_HOME"] = str(args.home.expanduser().resolve())
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     for name in ("httpx", "httpcore", "huggingface_hub", "websockets.server"):
         logging.getLogger(name).setLevel(logging.WARNING)
     try:
         settings = Settings.load()
-        settings.token = os.environ.get("GIGA_DICTATION_TOKEN", settings.token)
+        settings.token = os.environ.get("TALK2G_TOKEN", settings.token)
         if getattr(args, "model", None):
             settings.model = args.model
         if getattr(args, "threads", None):
@@ -187,7 +187,7 @@ def main() -> None:
             from .desktop import send_control
 
             if not send_control(args.command):
-                raise RuntimeError("Сначала запустите Giga Dictation")
+                raise RuntimeError("Сначала запустите talk2g")
         else:
             from .runtime import desktop_runtime
 

@@ -141,54 +141,6 @@ wheels = [
 ]
 
 [[package]]
-name = "giga-dictation"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "onnx-asr", extra = ["cpu", "hub"] },
-    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "soundfile" },
-    { name = "websockets" },
-]
-
-[package.optional-dependencies]
-desktop = [
-    { name = "dbus-next", marker = "sys_platform == 'linux'" },
-    { name = "pyside6" },
-    { name = "python-xlib", marker = "sys_platform == 'linux'" },
-    { name = "sounddevice" },
-]
-dev = [
-    { name = "pyinstaller" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-qt" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "dbus-next", marker = "sys_platform == 'linux' and extra == 'desktop'", specifier = "==0.2.3" },
-    { name = "numpy", specifier = ">=2,<3" },
-    { name = "onnx-asr", extras = ["cpu", "hub"], specifier = "==0.12.0" },
-    { name = "pyinstaller", marker = "extra == 'dev'", specifier = ">=6,<7" },
-    { name = "pyside6", marker = "extra == 'desktop'", specifier = ">=6.8,<7" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8,<10" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=1,<2" },
-    { name = "pytest-qt", marker = "extra == 'dev'", specifier = ">=4,<5" },
-    { name = "python-xlib", marker = "sys_platform == 'linux' and extra == 'desktop'", specifier = ">=0.33,<1" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.12,<1" },
-    { name = "scipy", specifier = ">=1.13,<2" },
-    { name = "sounddevice", marker = "extra == 'desktop'", specifier = ">=0.5,<1" },
-    { name = "soundfile", specifier = ">=0.13,<1" },
-    { name = "websockets", specifier = "==15.0.1" },
-]
-provides-extras = ["desktop", "dev"]
-
-[[package]]
 name = "h11"
 version = "0.16.0"
 source = { registry = "https://pypi.org/simple" }
@@ -866,6 +818,54 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ed/97/b39c18ac1df45e755ca22b8b00e872929da5d107998a207a5e4ac831bfda/soundfile-0.14.0-py2.py3-none-win_amd64.whl", hash = "sha256:299491d3499460fb1b74bb4bd78b57ffc2d243a5fafa7b6ec1b264875c78453e", size = 1021480, upload-time = "2026-06-06T08:58:45.016Z" },
     { url = "https://files.pythonhosted.org/packages/f4/83/55c65e61cf457805ce2ec157c1c6ae17715d0851aa2374422de0538838ca/soundfile-0.14.0-py2.py3-none-win_arm64.whl", hash = "sha256:e090704718e124e7c844695236f1fce8d18a5e761eaf7c82dfcd124620805f98", size = 888858, upload-time = "2026-06-06T08:58:46.593Z" },
 ]
+
+[[package]]
+name = "talk2g"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "onnx-asr", extra = ["cpu", "hub"] },
+    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "soundfile" },
+    { name = "websockets" },
+]
+
+[package.optional-dependencies]
+desktop = [
+    { name = "dbus-next", marker = "sys_platform == 'linux'" },
+    { name = "pyside6" },
+    { name = "python-xlib", marker = "sys_platform == 'linux'" },
+    { name = "sounddevice" },
+]
+dev = [
+    { name = "pyinstaller" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-qt" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "dbus-next", marker = "sys_platform == 'linux' and extra == 'desktop'", specifier = "==0.2.3" },
+    { name = "numpy", specifier = ">=2,<3" },
+    { name = "onnx-asr", extras = ["cpu", "hub"], specifier = "==0.12.0" },
+    { name = "pyinstaller", marker = "extra == 'dev'", specifier = ">=6,<7" },
+    { name = "pyside6", marker = "extra == 'desktop'", specifier = ">=6.8,<7" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8,<10" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=1,<2" },
+    { name = "pytest-qt", marker = "extra == 'dev'", specifier = ">=4,<5" },
+    { name = "python-xlib", marker = "sys_platform == 'linux' and extra == 'desktop'", specifier = ">=0.33,<1" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.12,<1" },
+    { name = "scipy", specifier = ">=1.13,<2" },
+    { name = "sounddevice", marker = "extra == 'desktop'", specifier = ">=0.5,<1" },
+    { name = "soundfile", specifier = ">=0.13,<1" },
+    { name = "websockets", specifier = "==15.0.1" },
+]
+provides-extras = ["desktop", "dev"]
 
 [[package]]
 name = "tqdm"

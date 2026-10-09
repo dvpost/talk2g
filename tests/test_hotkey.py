@@ -1,6 +1,6 @@
 import pytest
 
-from giga_dictation.hotkey import parse_hotkey
+from talk2g.hotkey import parse_hotkey
 
 
 @pytest.mark.parametrize(

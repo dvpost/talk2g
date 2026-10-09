@@ -1,3 +1,3 @@
-from giga_dictation.cli import main
+from talk2g.cli import main
 
 main()

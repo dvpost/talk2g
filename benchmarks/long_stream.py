@@ -8,8 +8,8 @@ from pathlib import Path
 import numpy as np
 from websockets.asyncio.client import connect
 
-from giga_dictation.audio import pcm, read_audio
-from giga_dictation.config import RATE
+from talk2g.audio import pcm, read_audio
+from talk2g.config import RATE
 
 
 async def main():

@@ -63,7 +63,7 @@ class WaylandPortal:
     async def _request(self, interface, member, signature, body):
         from dbus_next import Variant
 
-        token = "giga" + uuid.uuid4().hex
+        token = "talk2g" + uuid.uuid4().hex
         body[-1]["handle_token"] = Variant("s", token)
         sender = self.bus.unique_name.lstrip(":").replace(".", "_")
         handle = f"/org/freedesktop/portal/desktop/request/{sender}/{token}"
@@ -119,7 +119,7 @@ class WaylandPortal:
                 "RemoteDesktop",
                 "CreateSession",
                 "a{sv}",
-                [{"session_handle_token": Variant("s", "giga" + uuid.uuid4().hex)}],
+                [{"session_handle_token": Variant("s", "talk2g" + uuid.uuid4().hex)}],
             )
             self.session = result["session_handle"].value
             options = {"types": Variant("u", 1), "persist_mode": Variant("u", 2)}
@@ -146,7 +146,7 @@ class WaylandPortal:
                     "GlobalShortcuts",
                     "CreateSession",
                     "a{sv}",
-                    [{"session_handle_token": Variant("s", "giga" + uuid.uuid4().hex)}],
+                    [{"session_handle_token": Variant("s", "talk2g" + uuid.uuid4().hex)}],
                 )
                 self.shortcuts_session = result["session_handle"].value
                 shortcut = [

@@ -56,9 +56,7 @@ log = logging.getLogger(__name__)
 
 
 def socket_name() -> str:
-    return "giga-dictation-" + (
-        str(os.getuid()) if hasattr(os, "getuid") else os.environ.get("USERNAME", "user")
-    )
+    return "talk2g-" + (str(os.getuid()) if hasattr(os, "getuid") else os.environ.get("USERNAME", "user"))
 
 
 def hotkey_label(value: str) -> str:
@@ -88,7 +86,7 @@ def app_icon() -> QIcon:
     painter.drawRoundedRect(2, 2, 60, 60, 16, 16)
     painter.setPen(QColor("white"))
     painter.setFont(QFont("Sans", 29, QFont.Weight.Bold))
-    painter.drawText(canvas.rect(), Qt.AlignmentFlag.AlignCenter, "Г")
+    painter.drawText(canvas.rect(), Qt.AlignmentFlag.AlignCenter, "t")
     painter.end()
     return QIcon(canvas)
 
@@ -262,7 +260,7 @@ class MainWindow(QMainWindow):
         self.bridge.health_result.connect(self._health_result)
         self.bridge.permission_result.connect(self._permission_result)
         self.overlay = Overlay()
-        self.setWindowTitle("Giga Dictation")
+        self.setWindowTitle("talk2g")
         self.setWindowIcon(app_icon())
         self.resize(740, 700)
         self.setStyleSheet(
@@ -273,7 +271,7 @@ class MainWindow(QMainWindow):
         root = QWidget()
         self.setCentralWidget(root)
         layout = QVBoxLayout(root)
-        heading = QLabel("Giga Dictation")
+        heading = QLabel("talk2g")
         heading.setFont(QFont("Sans", 24, QFont.Weight.Bold))
         layout.addWidget(heading)
         self.status = QLabel("Подготовка локальной модели…")
@@ -313,7 +311,7 @@ class MainWindow(QMainWindow):
         quit_action.triggered.connect(self.quit)
         menu.addAction(quit_action)
         self.tray.setContextMenu(menu)
-        self.tray.setToolTip("Giga Dictation · " + hotkey_label(self.settings.hotkey))
+        self.tray.setToolTip("talk2g · " + hotkey_label(self.settings.hotkey))
         self.tray.activated.connect(
             lambda reason: self.show_normal() if reason == QSystemTrayIcon.ActivationReason.Trigger else None
         )
@@ -472,7 +470,7 @@ class MainWindow(QMainWindow):
             form.addRow(note)
         note = QLabel(
             "Модель: GigaAM v3 E2E · CPU INT8. После загрузки работает офлайн.\n"
-            "Переключатели выше также доступны по правой кнопке на значке «Г» в трее."
+            "Переключатели выше также доступны по правой кнопке на значке «t» в трее."
         )
         note.setWordWrap(True)
         form.addRow(note)
@@ -624,7 +622,7 @@ class MainWindow(QMainWindow):
             self.settings = new
             self._sync_feature_controls()
             self.record.setText("Начать диктовку · " + hotkey_label(new.hotkey))
-            self.tray.setToolTip("Giga Dictation · " + hotkey_label(new.hotkey))
+            self.tray.setToolTip("talk2g · " + hotkey_label(new.hotkey))
             if restart_server:
                 self.service.close()
                 self.ready = False
@@ -825,7 +823,7 @@ class MainWindow(QMainWindow):
         self.overlay.state.setText("Слушаю · горячая клавиша — завершить")
         self.overlay.preview.setText("")
         self._sync_overlay()
-        self.tray.setToolTip("Giga Dictation · слушаю · " + hotkey_label(self.settings.hotkey))
+        self.tray.setToolTip("talk2g · слушаю · " + hotkey_label(self.settings.hotkey))
         self.thread.start()
         if self.settings.load_on_demand:
             try:
@@ -940,7 +938,7 @@ class MainWindow(QMainWindow):
                 if self.settings.auto_insert and not self.remainder
                 else "Диктовка завершена · текст сохранён в истории"
             )
-        self.tray.setToolTip("Giga Dictation · " + hotkey_label(self.settings.hotkey))
+        self.tray.setToolTip("talk2g · " + hotkey_label(self.settings.hotkey))
         QTimer.singleShot(1400, self._hide_finished_overlay)
 
     def _hide_finished_overlay(self):
@@ -1017,8 +1015,8 @@ class MainWindow(QMainWindow):
 
 def run_app(settings: Settings, *, background: bool = False):
     application = QApplication(sys.argv[:1])
-    application.setApplicationName("Giga Dictation")
-    application.setOrganizationName("GigaDictation")
+    application.setApplicationName("talk2g")
+    application.setOrganizationName("talk2g")
     application.setQuitOnLastWindowClosed(False)
     if send_control("ping" if background else "show"):
         return

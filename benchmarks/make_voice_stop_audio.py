@@ -7,8 +7,8 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
-from giga_dictation.audio import read_audio
-from giga_dictation.config import RATE
+from talk2g.audio import read_audio
+from talk2g.config import RATE
 
 
 def main():

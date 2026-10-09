@@ -24,7 +24,7 @@ GitHub Actions выполняет те же проверки на Linux и Windo
 
 ```bash
 ./run-linux.sh download
-env GIGA_REAL_MODEL_TESTS=1 ./check.sh
+env TALK2G_REAL_MODEL_TESTS=1 ./check.sh
 ```
 
 `tests/test_real_model.py` передаёт `tests/fixtures/example.wav` через настоящий
@@ -34,7 +34,7 @@ env GIGA_REAL_MODEL_TESTS=1 ./check.sh
 Для системного ввода и глобальной горячей клавиши в отдельном X11-сеансе:
 
 ```bash
-env GIGA_REAL_MODEL_TESTS=1 benchmarks/check_x11.sh
+env TALK2G_REAL_MODEL_TESTS=1 benchmarks/check_x11.sh
 ```
 
 Скрипт использует Xvfb, XFWM4 и отдельную D-Bus-сессию. Требуются `xvfb-run`,
@@ -81,11 +81,11 @@ uv run python benchmarks/autostart_smoke.py
 
 ```bash
 uv run python packaging/build.py
-uv run python benchmarks/e2e_packaged.py --executable dist/GigaDictation/GigaDictation
-uv run python benchmarks/autostart_smoke.py --executable dist/GigaDictation/GigaDictation
+uv run python benchmarks/e2e_packaged.py --executable dist/talk2g/talk2g
+uv run python benchmarks/autostart_smoke.py --executable dist/talk2g/talk2g
 ```
 
-На Windows исполняемый файл — `dist/GigaDictation/GigaDictation.exe`.
+На Windows исполняемый файл — `dist/talk2g/talk2g.exe`.
 Сборка содержит GigaAM CTC, Silero VAD и зависимости приложения.
 
 `benchmarks/benchmark_models.py` сравнивает CTC и RNNT на одной записи.

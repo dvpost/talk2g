@@ -16,7 +16,7 @@ def health(url: str) -> dict:
     opener = build_opener(ProxyHandler({}))
     with opener.open(Request(f"{scheme}://{address.netloc}/health"), timeout=2) as response:
         result = json.load(response)
-    if result.get("app") != "giga-dictation" or result.get("protocol") != 1:
+    if result.get("app") != "talk2g" or result.get("protocol") != 1:
         raise ValueError("На этом адресе работает другой сервис")
     return result
 
@@ -39,9 +39,7 @@ class LocalService:
             pass
         self.home.joinpath(".data").mkdir(parents=True, exist_ok=True)
         self.log_file = self.home.joinpath(".data/server.log").open("a", encoding="utf-8")
-        prefix = (
-            [sys.executable] if getattr(sys, "frozen", False) else [sys.executable, "-m", "giga_dictation"]
-        )
+        prefix = [sys.executable] if getattr(sys, "frozen", False) else [sys.executable, "-m", "talk2g"]
         command = prefix + [
             "server",
             "--host",

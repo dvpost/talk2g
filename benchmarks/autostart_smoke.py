@@ -13,10 +13,10 @@ from pathlib import Path
 
 from PySide6.QtWidgets import QApplication
 
-from giga_dictation.autostart import Autostart
-from giga_dictation.config import Settings
-from giga_dictation.desktop import send_control
-from giga_dictation.service import health
+from talk2g.autostart import Autostart
+from talk2g.config import Settings
+from talk2g.desktop import send_control
+from talk2g.service import health
 
 
 def wait_for(condition, message, timeout=12):
@@ -30,7 +30,7 @@ def wait_for(condition, message, timeout=12):
 
 def visible(pid):
     query = subprocess.run(
-        ["xdotool", "search", "--onlyvisible", "--all", "--pid", str(pid), "--name", "^Giga Dictation$"],
+        ["xdotool", "search", "--onlyvisible", "--all", "--pid", str(pid), "--name", "^talk2g$"],
         capture_output=True,
         text=True,
     )
@@ -52,7 +52,7 @@ def main():
     root = Path(__file__).resolve().parents[1]
     application = QApplication([])
     if send_control("ping"):
-        raise RuntimeError("Завершите обычный Giga Dictation перед проверкой его автозапуска")
+        raise RuntimeError("Завершите обычный talk2g перед проверкой его автозапуска")
     executable = str(Path(args.executable).resolve()) if args.executable else sys.executable
     pid = None
     with tempfile.TemporaryDirectory(prefix="autostart-", dir=root / ".tools") as temporary:
@@ -70,7 +70,7 @@ def main():
             os.environ,
             XDG_CONFIG_HOME=str(manager.config_dir),
             HF_HUB_OFFLINE="1",
-            GIGA_DICTATION_HOME=str(profile / "wrong-profile"),
+            TALK2G_HOME=str(profile / "wrong-profile"),
         )
         # Login sessions do not inherit our development shell's local Qt setup.
         environment.pop("LD_LIBRARY_PATH", None)

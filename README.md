@@ -1,4 +1,4 @@
-# Giga Dictation
+# talk2g
 
 Локальная голосовая диктовка по-русски на **GigaAM v3** для Linux и Windows.
 Слова появляются в выбранном приложении **во время речи**. Можно держать модель
@@ -35,7 +35,7 @@ cd talk2g
 Ctrl+Shift+V для терминала и Ctrl+V для обычного поля. При необходимости выберите
 своё сочетание в настройках («Вставка в Linux»).
 
-По **правой кнопке на значке «Г» в трее** доступны переключатели:
+По **правой кнопке на значке «t» в трее** доступны переключатели:
 автоматический ввод, копирование диктовки в буфер, синее окно диктовки и
 **«Загружать модель только при диктовке»**, **«Запускать при входе в систему»** и
 **«Останавливать по фразе „конец связи“»**.
@@ -81,8 +81,8 @@ Ctrl+Shift+V для терминала и Ctrl+V для обычного пол�
 она не занимает память сразу после входа. «Выход» закрывает текущий процесс,
 оставляя автозапуск на следующий вход; выключить его можно галочкой.
 
-Linux использует `~/.config/autostart/giga-dictation.desktop` (или каталог
-`$XDG_CONFIG_HOME`); Windows — запись `GigaDictation` в `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`.
+Linux использует `~/.config/autostart/talk2g.desktop` (или каталог
+`$XDG_CONFIG_HOME`); Windows — запись `talk2g` в `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`.
 Права администратора не нужны. Автозапуск привязан к абсолютному пути программы
 и её профиля. После переноса папки выключите и снова включите галочку из нового
 расположения. Для нового профиля автозапуск по умолчанию выключен;
@@ -175,14 +175,14 @@ Silero VAD обнаруживает речь и паузы. Каждые при�
 Галочка управляет жизнью только локального сервера, запущенного самим приложением;
 уже работающий отдельный или удалённый сервер клиент не выгружает.
 
-Для сетевого сервера задайте `GIGA_DICTATION_TOKEN` перед запуском с
+Для сетевого сервера задайте `TALK2G_TOKEN` перед запуском с
 `--host 0.0.0.0`, укажите такой же токен в интерфейсе клиента. В недоверенной сети
 используйте `wss://` через TLS-прокси. Протокол описан в [PROTOCOL.md](PROTOCOL.md).
 
 Все настройки, история и журналы `app.log`/`server.log` расположены в `.data` внутри проекта.
 Весовые файлы находятся в `models`. Аудио с микрофона не сохраняется на диск;
 после завершения буфер обмена содержит весь распознанный текст.
-Каталог можно переопределить переменной `GIGA_DICTATION_HOME`.
+Каталог можно переопределить переменной `TALK2G_HOME`.
 
 ## Разработка и воспроизводимые проверки
 
@@ -193,8 +193,8 @@ Silero VAD обнаруживает речь и паузы. Каждые при�
 ```bash
 uv sync --frozen --extra desktop --extra dev
 ./check.sh
-env GIGA_DESKTOP_TESTS=1 ./check.sh
-env GIGA_REAL_MODEL_TESTS=1 ./check.sh
+env TALK2G_DESKTOP_TESTS=1 ./check.sh
+env TALK2G_REAL_MODEL_TESTS=1 ./check.sh
 ```
 
 Обычные тесты используют проверяемый WebSocket-сервер и контролируемое
@@ -221,8 +221,8 @@ uv run python benchmarks/e2e_packaged.py --on-demand --terminal --sessions 2 --o
 uv run python packaging/build.py
 ```
 
-Результат — `dist/GigaDictation`, включая CTC и VAD. На Linux запускайте
-`dist/GigaDictation/GigaDictation`, на Windows — `GigaDictation.exe`.
+Результат — `dist/talk2g`, включая CTC и VAD. На Linux запускайте
+`dist/talk2g/talk2g`, на Windows — `talk2g.exe`.
 Переносите папку целиком. Системные требования Linux к PortAudio/xdotool остаются.
 Qt-библиотеки остаются отдельными файлами.
 
@@ -230,10 +230,10 @@ Qt-библиотеки остаются отдельными файлами.
 
 ```bash
 uv run python benchmarks/e2e_packaged.py
-uv run python benchmarks/e2e_packaged.py --executable dist/GigaDictation/GigaDictation --output benchmarks/packaged-results.json
+uv run python benchmarks/e2e_packaged.py --executable dist/talk2g/talk2g --output benchmarks/packaged-results.json
 uv run python benchmarks/e2e_packaged.py --terminal --sessions 2 --output benchmarks/terminal-results.json
 uv run python benchmarks/autostart_smoke.py
-uv run python benchmarks/autostart_smoke.py --executable dist/GigaDictation/GigaDictation --output benchmarks/autostart-packaged-results.json
+uv run python benchmarks/autostart_smoke.py --executable dist/talk2g/talk2g --output benchmarks/autostart-packaged-results.json
 ```
 
 Эти проверки создают отдельный временный профиль, используют глобальный хоткей,

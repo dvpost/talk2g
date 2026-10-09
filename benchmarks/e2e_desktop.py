@@ -12,8 +12,8 @@ from pathlib import Path
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication, QPlainTextEdit
 
-from giga_dictation.config import Settings
-from giga_dictation.desktop import MainWindow
+from talk2g.config import Settings
+from talk2g.desktop import MainWindow
 
 
 def main():
@@ -32,7 +32,7 @@ def main():
     window = MainWindow(Settings(auto_insert=True))
     chord = "+".join(part.strip("<>") for part in window.settings.hotkey.split("+"))
     target = QPlainTextEdit()
-    target.setWindowTitle("Giga Dictation · тестовое поле ввода")
+    target.setWindowTitle("talk2g · тестовое поле ввода")
     target.resize(850, 350)
     target.show()
     target.activateWindow()
@@ -48,9 +48,9 @@ def main():
     if args.microphone_pulse:
         original_source = subprocess.check_output(["pactl", "get-default-source"], text=True).strip()
         module = subprocess.check_output(
-            ["pactl", "load-module", "module-null-sink", "sink_name=giga_dictation_test"], text=True
+            ["pactl", "load-module", "module-null-sink", "sink_name=talk2g_test"], text=True
         ).strip()
-        subprocess.run(["pactl", "set-default-source", "giga_dictation_test.monitor"], check=True)
+        subprocess.run(["pactl", "set-default-source", "talk2g_test.monitor"], check=True)
 
     def start():
         nonlocal player
@@ -66,7 +66,7 @@ def main():
 
     def play():
         nonlocal player
-        player = subprocess.Popen(["paplay", "--device=giga_dictation_test", args.audio])
+        player = subprocess.Popen(["paplay", "--device=talk2g_test", args.audio])
 
     def poll():
         nonlocal started, first_insert, error, began, stop_sent

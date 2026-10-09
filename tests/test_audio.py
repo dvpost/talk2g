@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 import soundfile as sf
 
-from giga_dictation.audio import Segmenter, pcm, read_audio
-from giga_dictation.config import RATE, Settings
+from talk2g.audio import Segmenter, pcm, read_audio
+from talk2g.config import RATE, Settings
 
 
 class Detector:

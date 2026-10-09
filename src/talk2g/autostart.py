@@ -12,7 +12,7 @@ from pathlib import Path
 from .config import project_home
 
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
-VALUE_NAME = "GigaDictation"
+VALUE_NAME = "talk2g"
 
 
 def desktop_argument(value: str) -> str:
@@ -40,7 +40,7 @@ class Autostart:
         self.executable = Path(executable or sys.executable)  # preserve virtualenv interpreter symlinks
         self.frozen = getattr(sys, "frozen", False) if frozen is None else frozen
         self.config_dir = config_dir or Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
-        self.entry = self.config_dir / "autostart/giga-dictation.desktop"
+        self.entry = self.config_dir / "autostart/talk2g.desktop"
         self.registry = registry
 
     def command(self) -> list[str]:
@@ -49,7 +49,7 @@ class Autostart:
             executable = executable.with_name("pythonw.exe")
             if not executable.is_file():
                 raise RuntimeError("Для автозапуска Windows нужен pythonw.exe рядом с Python")
-        prefix = [str(executable)] if self.frozen else [str(executable), "-m", "giga_dictation"]
+        prefix = [str(executable)] if self.frozen else [str(executable), "-m", "talk2g"]
         return prefix + ["app", "--background", "--home", str(self.home)]
 
     def _windows_registry(self):
@@ -95,7 +95,7 @@ class Autostart:
                 "[Desktop Entry]\n"
                 "Type=Application\n"
                 "Version=1.0\n"
-                "Name=Giga Dictation\n"
+                "Name=talk2g\n"
                 "Comment=Local progressive voice typing\n"
                 "Exec=" + " ".join(desktop_argument(part) for part in command) + "\n"
                 "Terminal=false\n"
@@ -106,7 +106,7 @@ class Autostart:
             temporary = None
             try:
                 with tempfile.NamedTemporaryFile(
-                    mode="w", encoding="utf-8", dir=self.entry.parent, prefix=".giga-", delete=False
+                    mode="w", encoding="utf-8", dir=self.entry.parent, prefix=".talk2g-", delete=False
                 ) as stream:
                     temporary = Path(stream.name)
                     stream.write(content)

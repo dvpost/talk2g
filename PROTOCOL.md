@@ -1,6 +1,6 @@
 # Потоковый протокол v1
 
-`GET /health` возвращает JSON с `app=giga-dictation`, `protocol=1`,
+`GET /health` возвращает JSON с `app=talk2g`, `protocol=1`,
 `ready`, `busy`, `model`, `error`. WebSocket: `/v1/dictate`.
 Браузерные соединения с Origin отклоняются. Клиент использует duplex-соединение:
 передача звука продолжается во время получения результатов.

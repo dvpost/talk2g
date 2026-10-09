@@ -16,4 +16,4 @@ def desktop_runtime() -> None:
     os.environ["LD_LIBRARY_PATH"] = str(libraries) + (
         ":" + os.environ["LD_LIBRARY_PATH"] if os.environ.get("LD_LIBRARY_PATH") else ""
     )
-    os.execv(sys.executable, [sys.executable, "-m", "giga_dictation", *sys.argv[1:]])
+    os.execv(sys.executable, [sys.executable, "-m", "talk2g", *sys.argv[1:]])

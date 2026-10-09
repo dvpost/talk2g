@@ -1,6 +1,6 @@
 import pytest
 
-from giga_dictation.voice_command import VoiceStop
+from talk2g.voice_command import VoiceStop
 
 
 @pytest.mark.parametrize(

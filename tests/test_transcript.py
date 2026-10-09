@@ -1,8 +1,8 @@
 import pytest
 
-from giga_dictation.client import Delivery
-from giga_dictation.model import Word, words_from_tokens
-from giga_dictation.transcript import Transcript
+from talk2g.client import Delivery
+from talk2g.model import Word, words_from_tokens
+from talk2g.transcript import Transcript
 
 
 def test_unstable_tail_is_revised_but_inserted_prefix_is_not():

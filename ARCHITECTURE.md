@@ -1,4 +1,4 @@
-# Архитектура Giga Dictation
+# Архитектура talk2g
 
 Приложение состоит из клиента Python/PySide6 и сервера Python/WebSocket.
 Сервер использует GigaAM v3 E2E и Silero VAD через ONNX Runtime на CPU.
@@ -65,7 +65,7 @@ Wayland использует системные порталы, доступно
 
 ## Карта исходников
 
-| Файл в `src/giga_dictation` | Ответственность |
+| Файл в `src/talk2g` | Ответственность |
 |---|---|
 | `cli.py` | Команды app, server, download, transcribe, replay, doctor, toggle и quit |
 | `desktop.py` | Интерфейс, трей, настройки, виджет, управление записью и системной вставкой |
@@ -81,6 +81,6 @@ Wayland использует системные порталы, доступно
 | `autostart.py`, `runtime.py` | Автозапуск и подготовка окружения Qt |
 
 Настройки, SQLite и логи находятся в `.data`, веса — в `models`.
-Корень задаётся `GIGA_DICTATION_HOME`, аргументом `app --home` или расположением
+Корень задаётся `TALK2G_HOME`, аргументом `app --home` или расположением
 проекта/автономного приложения. Локальные данные и веса не входят в Git.
 Проверки — [VALIDATION.md](VALIDATION.md); сборка — `packaging/build.py`.

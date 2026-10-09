@@ -18,9 +18,9 @@ from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication, QPlainTextEdit
 from Xlib import display
 
-from giga_dictation.config import Settings
-from giga_dictation.history import History
-from giga_dictation.service import health
+from talk2g.config import Settings
+from talk2g.history import History
+from talk2g.service import health
 
 
 def main():
@@ -43,7 +43,7 @@ def main():
     application = QApplication([])
     application.setQuitOnLastWindowClosed(False)
     target = QPlainTextEdit()
-    target.setWindowTitle("Giga Dictation · сквозная проверка запуска")
+    target.setWindowTitle("talk2g · сквозная проверка запуска")
     target.resize(900, 350)
     result = {}
     process = player = module = None
@@ -66,7 +66,7 @@ def main():
             stop_on_phrase=args.voice_stop,
         )
         settings.save(profile)
-        environment = dict(os.environ, GIGA_DICTATION_HOME=str(profile), HF_HUB_OFFLINE="1")
+        environment = dict(os.environ, TALK2G_HOME=str(profile), HF_HUB_OFFLINE="1")
         began = time.monotonic()
         speech_start = stopped_at = first_insert = None
         triggered_at = playback_at = None
@@ -109,7 +109,7 @@ def main():
         def start_player():
             nonlocal player, playback_at
             playback_at = time.monotonic()
-            player = subprocess.Popen(["paplay", "--device=giga_dictation_test", str(audio_path)])
+            player = subprocess.Popen(["paplay", "--device=talk2g_test", str(audio_path)])
 
         def poll():
             nonlocal speech_start, first_insert, stopped_at, error, terminal, terminal_target
@@ -123,7 +123,7 @@ def main():
                 if speech_start is None:
                     if args.on_demand:
                         windows = subprocess.run(
-                            ["xdotool", "search", "--onlyvisible", "--name", "^Giga Dictation$"],
+                            ["xdotool", "search", "--onlyvisible", "--name", "^talk2g$"],
                             capture_output=True,
                             text=True,
                         )
@@ -150,7 +150,7 @@ def main():
                                 [
                                     "xfce4-terminal",
                                     "--disable-server",
-                                    "--title=Giga Dictation full terminal test",
+                                    "--title=talk2g full terminal test",
                                     "--dynamic-title-mode=none",
                                     "--execute",
                                     sys.executable,
@@ -170,7 +170,7 @@ def main():
                                     "search",
                                     "--onlyvisible",
                                     "--name",
-                                    "Giga Dictation full terminal test",
+                                    "talk2g full terminal test",
                                 ],
                                 text=True,
                             )
@@ -324,9 +324,9 @@ def main():
 
         try:
             module = subprocess.check_output(
-                ["pactl", "load-module", "module-null-sink", "sink_name=giga_dictation_test"], text=True
+                ["pactl", "load-module", "module-null-sink", "sink_name=talk2g_test"], text=True
             ).strip()
-            subprocess.run(["pactl", "set-default-source", "giga_dictation_test.monitor"], check=True)
+            subprocess.run(["pactl", "set-default-source", "talk2g_test.monitor"], check=True)
             with (profile / "launcher.log").open("w") as log:
                 process = subprocess.Popen([executable], env=environment, stdout=log, stderr=log)
                 timer = QTimer()

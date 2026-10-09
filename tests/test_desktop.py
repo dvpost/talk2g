@@ -9,9 +9,9 @@ from pathlib import Path
 import pytest
 from PySide6.QtWidgets import QApplication, QPlainTextEdit
 
-from giga_dictation.desktop import InsertionQueue
-from giga_dictation.hotkey import NativeHotkey
-from giga_dictation.input import foreground, modifiers_pressed
+from talk2g.desktop import InsertionQueue
+from talk2g.hotkey import NativeHotkey
+from talk2g.input import foreground, modifiers_pressed
 
 
 def activate(widget, qtbot):
@@ -29,7 +29,7 @@ def activate(widget, qtbot):
 
 @pytest.mark.desktop
 @pytest.mark.skipif(
-    not os.environ.get("GIGA_DESKTOP_TESTS"), reason="Set GIGA_DESKTOP_TESTS=1 for native insertion"
+    not os.environ.get("TALK2G_DESKTOP_TESTS"), reason="Set TALK2G_DESKTOP_TESTS=1 for native insertion"
 )
 def test_native_unicode_input_into_own_window(qtbot):
     target = QPlainTextEdit()
@@ -54,7 +54,7 @@ def test_native_unicode_input_into_own_window(qtbot):
 
 @pytest.mark.desktop
 @pytest.mark.skipif(
-    not os.environ.get("GIGA_DESKTOP_TESTS"), reason="Set GIGA_DESKTOP_TESTS=1 for native insertion"
+    not os.environ.get("TALK2G_DESKTOP_TESTS"), reason="Set TALK2G_DESKTOP_TESTS=1 for native insertion"
 )
 def test_changed_window_suspends_insertion_and_preserves_remainder(qtbot):
     first, second = QPlainTextEdit(), QPlainTextEdit()
@@ -73,7 +73,7 @@ def test_changed_window_suspends_insertion_and_preserves_remainder(qtbot):
 
 
 @pytest.mark.desktop
-@pytest.mark.skipif(not os.environ.get("GIGA_DESKTOP_TESTS") or sys.platform != "linux", reason="X11")
+@pytest.mark.skipif(not os.environ.get("TALK2G_DESKTOP_TESTS") or sys.platform != "linux", reason="X11")
 def test_native_hotkey_every_press_with_different_release_order_and_autorepeat(qtbot):
     target = QPlainTextEdit()
     qtbot.addWidget(target)
@@ -98,7 +98,7 @@ def test_native_hotkey_every_press_with_different_release_order_and_autorepeat(q
 
 
 @pytest.mark.desktop
-@pytest.mark.skipif(not os.environ.get("GIGA_DESKTOP_TESTS") or sys.platform != "linux", reason="X11")
+@pytest.mark.skipif(not os.environ.get("TALK2G_DESKTOP_TESTS") or sys.platform != "linux", reason="X11")
 def test_ctrl_shift_a_in_english_and_russian_layouts(qtbot):
     from Xlib import XK, X, display
     from Xlib.ext import xtest
@@ -162,7 +162,7 @@ def test_ctrl_shift_a_in_english_and_russian_layouts(qtbot):
 
 
 @pytest.mark.desktop
-@pytest.mark.skipif(not os.environ.get("GIGA_DESKTOP_TESTS") or sys.platform != "linux", reason="X11")
+@pytest.mark.skipif(not os.environ.get("TALK2G_DESKTOP_TESTS") or sys.platform != "linux", reason="X11")
 @pytest.mark.parametrize("gap", [0, 0.004])
 def test_fast_repeated_letter_presses_with_modifiers_held(qtbot, gap):
     from Xlib import XK, X, display
@@ -203,7 +203,7 @@ def test_fast_repeated_letter_presses_with_modifiers_held(qtbot, gap):
 
 
 @pytest.mark.desktop
-@pytest.mark.skipif(not os.environ.get("GIGA_DESKTOP_TESTS") or sys.platform != "linux", reason="X11")
+@pytest.mark.skipif(not os.environ.get("TALK2G_DESKTOP_TESTS") or sys.platform != "linux", reason="X11")
 def test_occupied_hotkey_reports_conflict_and_keeps_existing_binding(qtbot):
     target = QPlainTextEdit()
     qtbot.addWidget(target)
@@ -223,7 +223,7 @@ def test_occupied_hotkey_reports_conflict_and_keeps_existing_binding(qtbot):
 
 
 @pytest.mark.desktop
-@pytest.mark.skipif(not os.environ.get("GIGA_DESKTOP_TESTS") or sys.platform != "linux", reason="X11")
+@pytest.mark.skipif(not os.environ.get("TALK2G_DESKTOP_TESTS") or sys.platform != "linux", reason="X11")
 def test_paste_waits_for_hotkey_release_without_corrupting_next_press(qtbot):
     target = QPlainTextEdit()
     qtbot.addWidget(target)
@@ -254,7 +254,7 @@ def test_paste_waits_for_hotkey_release_without_corrupting_next_press(qtbot):
 
 
 @pytest.mark.desktop
-@pytest.mark.skipif(not os.environ.get("GIGA_DESKTOP_TESTS") or sys.platform != "linux", reason="X11")
+@pytest.mark.skipif(not os.environ.get("TALK2G_DESKTOP_TESTS") or sys.platform != "linux", reason="X11")
 def test_hotkey_during_continuous_pasting_never_loses_a_press(qtbot):
     target = QPlainTextEdit()
     qtbot.addWidget(target)
@@ -293,7 +293,7 @@ def test_hotkey_during_continuous_pasting_never_loses_a_press(qtbot):
 
 
 @pytest.mark.desktop
-@pytest.mark.skipif(not os.environ.get("GIGA_DESKTOP_TESTS") or sys.platform != "linux", reason="X11")
+@pytest.mark.skipif(not os.environ.get("TALK2G_DESKTOP_TESTS") or sys.platform != "linux", reason="X11")
 def test_native_progressive_paste_into_xfce_terminal(qtbot, tmp_path):
     output = tmp_path / "received.txt"
     receiver = Path(__file__).parent / "support/terminal_receiver.py"
@@ -301,7 +301,7 @@ def test_native_progressive_paste_into_xfce_terminal(qtbot, tmp_path):
         [
             "xfce4-terminal",
             "--disable-server",
-            "--title=Giga Dictation terminal insertion test",
+            "--title=talk2g terminal insertion test",
             "--dynamic-title-mode=none",
             "--execute",
             sys.executable,
@@ -315,7 +315,7 @@ def test_native_progressive_paste_into_xfce_terminal(qtbot, tmp_path):
         qtbot.waitUntil(lambda: output.with_suffix(".ready").exists(), timeout=5000)
         result = (
             subprocess.check_output(
-                ["xdotool", "search", "--onlyvisible", "--name", "Giga Dictation terminal insertion test"],
+                ["xdotool", "search", "--onlyvisible", "--name", "talk2g terminal insertion test"],
                 text=True,
             )
             .strip()

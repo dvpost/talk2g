@@ -13,8 +13,8 @@ $env:UV_PYTHON_INSTALL_DIR = Join-Path $tools 'python'
 & $uv sync --frozen --extra desktop --python 3.12
 if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed' }
 $python = Join-Path $env:UV_PROJECT_ENVIRONMENT 'Scripts\python.exe'
-& $python -m giga_dictation download
+& $python -m talk2g download
 if ($LASTEXITCODE -ne 0) { throw 'Model download failed' }
-& $python -m giga_dictation doctor
+& $python -m talk2g doctor
 if ($LASTEXITCODE -ne 0) { throw 'Environment check failed' }
 Write-Host 'Ready. Start run-windows.cmd'

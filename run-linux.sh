@@ -9,4 +9,4 @@ local_libs="$project_dir/.tools/system-libs/usr/lib/$(uname -m)-linux-gnu"
 if [ -d "$local_libs" ]; then
     export LD_LIBRARY_PATH="$local_libs${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 fi
-exec .venv/bin/python -m giga_dictation "$@"
+exec .venv/bin/python -m talk2g "$@"

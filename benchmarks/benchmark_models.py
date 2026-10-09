@@ -8,9 +8,9 @@ from pathlib import Path
 
 import numpy as np
 
-from giga_dictation.audio import read_audio
-from giga_dictation.config import RATE, Settings
-from giga_dictation.model import GigaRecognizer
+from talk2g.audio import read_audio
+from talk2g.config import RATE, Settings
+from talk2g.model import GigaRecognizer
 
 
 def main():

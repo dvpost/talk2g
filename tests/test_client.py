@@ -9,9 +9,9 @@ import pytest
 from PySide6.QtCore import Qt
 from websockets.asyncio.server import serve
 
-from giga_dictation import client
-from giga_dictation.audio import pcm
-from giga_dictation.config import RATE, Settings
+from talk2g import client
+from talk2g.audio import pcm
+from talk2g.config import RATE, Settings
 
 
 @pytest.mark.parametrize("duration,load_delay", [(0.4, 0.8), (1.0, 0.4)])

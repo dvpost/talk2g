@@ -8,8 +8,8 @@ import sys
 from importlib import metadata
 from pathlib import Path
 
-from giga_dictation.config import Settings
-from giga_dictation.model import prepare_models
+from talk2g.config import Settings
+from talk2g.model import prepare_models
 
 root = Path(__file__).resolve().parents[1]
 os.chdir(root)
@@ -22,7 +22,7 @@ command = [
     "--clean",
     "--onedir",
     "--name",
-    "GigaDictation",
+    "talk2g",
     "--collect-all",
     "onnx_asr",
     "--collect-all",
@@ -45,7 +45,7 @@ if sys.platform == "linux":
             os.pathsep + environment["LD_LIBRARY_PATH"] if environment.get("LD_LIBRARY_PATH") else ""
         )
 subprocess.run(command, check=True, env=environment)
-output = root / "dist/GigaDictation"
+output = root / "dist/talk2g"
 for source in (model, vad.parent):
     shutil.copytree(
         source, output / "models" / source.name, ignore=shutil.ignore_patterns(".cache"), dirs_exist_ok=True

@@ -7,9 +7,9 @@ import pytest
 from PySide6.QtCore import QMimeData, QObject, Signal
 from PySide6.QtWidgets import QApplication, QPlainTextEdit
 
-from giga_dictation import desktop
-from giga_dictation.autostart import Autostart
-from giga_dictation.config import Settings
+from talk2g import desktop
+from talk2g.autostart import Autostart
+from talk2g.config import Settings
 
 
 class DictationStub(QObject):
@@ -74,8 +74,8 @@ class AutostartStub:
 
 @pytest.fixture
 def window(qtbot, monkeypatch, tmp_path):
-    monkeypatch.setenv("GIGA_DICTATION_HOME", str(tmp_path))
-    monkeypatch.setattr(desktop, "socket_name", lambda: f"giga-controls-{tmp_path.name}")
+    monkeypatch.setenv("TALK2G_HOME", str(tmp_path))
+    monkeypatch.setattr(desktop, "socket_name", lambda: f"talk2g-controls-{tmp_path.name}")
     monkeypatch.setattr(desktop, "NativeHotkey", HotkeyStub)
     monkeypatch.setattr(desktop, "LocalService", ServiceStub)
     monkeypatch.setattr(desktop, "DictationThread", DictationStub)
@@ -257,8 +257,8 @@ def test_on_demand_checkbox_persists_and_unloads_then_warms_when_unchecked(windo
 
 
 def test_app_starts_without_loading_model_in_on_demand_mode(qtbot, monkeypatch, tmp_path):
-    monkeypatch.setenv("GIGA_DICTATION_HOME", str(tmp_path))
-    monkeypatch.setattr(desktop, "socket_name", lambda: f"giga-cold-start-{tmp_path.name}")
+    monkeypatch.setenv("TALK2G_HOME", str(tmp_path))
+    monkeypatch.setattr(desktop, "socket_name", lambda: f"talk2g-cold-start-{tmp_path.name}")
     monkeypatch.setattr(desktop, "NativeHotkey", HotkeyStub)
     monkeypatch.setattr(desktop, "LocalService", ServiceStub)
     monkeypatch.setattr(desktop, "Autostart", AutostartStub)
@@ -337,7 +337,7 @@ def test_disabling_both_outputs_preserves_clipboard_and_keeps_history(window, qt
 
 @pytest.mark.desktop
 @pytest.mark.skipif(
-    not os.environ.get("GIGA_DESKTOP_TESTS") or sys.platform != "linux", reason="Native X11 insertion"
+    not os.environ.get("TALK2G_DESKTOP_TESTS") or sys.platform != "linux", reason="Native X11 insertion"
 )
 def test_copy_disabled_restores_rich_clipboard_after_real_insertion(window, qtbot):
     target = QPlainTextEdit()
@@ -366,7 +366,7 @@ def test_copy_disabled_restores_rich_clipboard_after_real_insertion(window, qtbo
 
 @pytest.mark.desktop
 @pytest.mark.skipif(
-    not os.environ.get("GIGA_DESKTOP_TESTS") or sys.platform != "linux", reason="Native X11 clipboard"
+    not os.environ.get("TALK2G_DESKTOP_TESTS") or sys.platform != "linux", reason="Native X11 clipboard"
 )
 def test_external_clipboard_does_not_delay_opening_the_microphone(window, qtbot):
     subprocess.run(["xclip", "-selection", "clipboard", "-in"], input="Чужой буфер", text=True, check=True)
@@ -382,7 +382,7 @@ def test_external_clipboard_does_not_delay_opening_the_microphone(window, qtbot)
 
 @pytest.mark.desktop
 @pytest.mark.skipif(
-    not os.environ.get("GIGA_DESKTOP_TESTS") or sys.platform != "linux", reason="Native X11 insertion"
+    not os.environ.get("TALK2G_DESKTOP_TESTS") or sys.platform != "linux", reason="Native X11 insertion"
 )
 def test_auto_insert_can_be_disabled_and_reenabled_mid_session(window, qtbot):
     target = QPlainTextEdit()
@@ -409,7 +409,7 @@ def test_auto_insert_can_be_disabled_and_reenabled_mid_session(window, qtbot):
 
 @pytest.mark.desktop
 @pytest.mark.skipif(
-    not os.environ.get("GIGA_DESKTOP_TESTS") or sys.platform != "linux", reason="Native X11 insertion"
+    not os.environ.get("TALK2G_DESKTOP_TESTS") or sys.platform != "linux", reason="Native X11 insertion"
 )
 def test_voice_command_never_leaks_into_real_target_or_clipboard(window, qtbot):
     target = QPlainTextEdit()

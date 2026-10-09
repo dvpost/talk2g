@@ -2,8 +2,8 @@ import json
 
 import pytest
 
-from giga_dictation.config import Settings
-from giga_dictation.history import History
+from talk2g.config import Settings
+from talk2g.history import History
 
 
 def test_settings_are_saved_and_loaded_without_changing_other_folders(tmp_path):

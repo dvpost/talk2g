@@ -12,7 +12,7 @@ RATE = 16_000
 
 
 def project_home() -> Path:
-    if value := os.environ.get("GIGA_DICTATION_HOME"):
+    if value := os.environ.get("TALK2G_HOME"):
         return Path(value).expanduser().resolve()
     if getattr(sys, "frozen", False):
         return Path(sys.executable).resolve().parent

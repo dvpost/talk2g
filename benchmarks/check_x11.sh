@@ -15,11 +15,11 @@ export GIO_USE_VFS=local
 export NO_AT_BRIDGE=1
 export XDG_CONFIG_HOME="$project_dir/.tools/xvfb-config"
 xfwm4 --compositor=off > .tools/xvfb-wm.log 2>&1 &
-giga_test_wm=$!
+talk2g_test_wm=$!
 cleanup() {
-    if kill -0 "$giga_test_wm" 2>/dev/null; then
-        kill "$giga_test_wm"
-        if wait "$giga_test_wm"; then
+    if kill -0 "$talk2g_test_wm" 2>/dev/null; then
+        kill "$talk2g_test_wm"
+        if wait "$talk2g_test_wm"; then
             :
         fi
     fi
@@ -34,5 +34,5 @@ for attempt in {1..50}; do
 done
 setxkbmap -layout us,ru
 export QT_QPA_PLATFORM=xcb
-export GIGA_DESKTOP_TESTS=1
+export TALK2G_DESKTOP_TESTS=1
 ./check.sh "$@"

@@ -10,13 +10,13 @@ import pytest
 from websockets.asyncio.client import connect
 from websockets.asyncio.server import serve
 
-from giga_dictation.audio import pcm, read_audio
-from giga_dictation.config import RATE, Settings
-from giga_dictation.server import DictationServer
+from talk2g.audio import pcm, read_audio
+from talk2g.config import RATE, Settings
+from talk2g.server import DictationServer
 
 
 @pytest.mark.real_model
-@pytest.mark.skipif(not os.environ.get("GIGA_REAL_MODEL_TESTS"), reason="Set GIGA_REAL_MODEL_TESTS=1")
+@pytest.mark.skipif(not os.environ.get("TALK2G_REAL_MODEL_TESTS"), reason="Set TALK2G_REAL_MODEL_TESTS=1")
 async def test_real_gigaam_commits_while_audio_is_being_sent_and_flushes_stop():
     service = DictationServer(Settings())
     await service.load()

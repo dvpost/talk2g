@@ -10,10 +10,10 @@ from websockets.asyncio.client import connect
 from websockets.asyncio.server import serve
 from websockets.exceptions import InvalidStatus
 
-from giga_dictation.audio import pcm
-from giga_dictation.config import RATE, Settings
-from giga_dictation.model import Word
-from giga_dictation.server import DictationServer
+from talk2g.audio import pcm
+from talk2g.config import RATE, Settings
+from talk2g.model import Word
+from talk2g.server import DictationServer
 
 
 class Detector:
