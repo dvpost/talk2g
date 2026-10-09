@@ -1,5 +1,6 @@
 .venv/
 .venv-win/
+.idea/
 .tools/
 models/
 .data/
