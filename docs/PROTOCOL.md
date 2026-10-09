@@ -21,7 +21,8 @@ false или неверный тип завершают handshake с явной 
 `save_recordings` (boolean, по умолчанию серверная настройка, обычно false)
 запрашивает сохранение принятого PCM и журнала в папке `recordings` сервера.
 При этом `ready.recording_path` содержит путь папки сессии, либо
-`ready.recording_error` сообщает об ошибке создания архива. Диктовка продолжается.
+`ready.recording_error` сообщает об ошибке создания архива. Диктовка продолжается
+по [EXC-0003](exceptional_execution_paths.md#exc-0003--продолжение-распознавания-при-файловой-ошибке-аудиоархива).
 Ответ `ready` содержит имя используемой модели. Неизвестные параметры игнорируются.
 Далее клиент отправляет бинарные пакеты little-endian signed PCM16, mono,
 16000 Hz. Рекомендовано 100 мс, максимум 1 секунда. Максимальная сессия — 2 часа.
@@ -82,10 +83,10 @@ partial нет. Приём следующего блока продолжает�
 При несовпадении session_end.text с полученными commits клиент показывает
 ошибку и сохраняет подтверждённый текст без замены серверным итогом.
 
-Контракт реализуют [protocol.py](src/talk2g/protocol.py),
-[server.py](src/talk2g/server.py) и [session_output.py](src/talk2g/session_output.py).
-Исполняемые проверки — [test_protocol.py](tests/test_protocol.py),
-[test_server.py](tests/test_server.py) и [test_session_output.py](tests/test_session_output.py).
+Контракт реализуют [protocol.py](../src/talk2g/protocol.py),
+[server.py](../src/talk2g/server.py) и [session_output.py](../src/talk2g/session_output.py).
+Исполняемые проверки — [test_protocol.py](../tests/test_protocol.py),
+[test_server.py](../tests/test_server.py) и [test_session_output.py](../tests/test_session_output.py).
 
 Результат каждого независимого вызова добавляется целиком, сохраняя
 произнесённые повторы и уже введённые пользовательские символы.

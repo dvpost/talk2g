@@ -48,15 +48,9 @@ for source in (model, vad.parent):
     shutil.copytree(
         source, output / "models" / source.name, ignore=shutil.ignore_patterns(".cache"), dirs_exist_ok=True
     )
-for name in (
-    "README.md",
-    "LICENSE",
-    "THIRD_PARTY.md",
-    "VALIDATION.md",
-    "PROTOCOL.md",
-    "ARCHITECTURE.md",
-):
+for name in ("README.md", "LICENSE", "AGENTS.md"):
     shutil.copy2(root / name, output / name)
+shutil.copytree(root / "docs", output / "docs", dirs_exist_ok=True)
 if (root / "packaging/licenses").is_dir():
     shutil.copytree(root / "packaging/licenses", output / "licenses/Qt", dirs_exist_ok=True)
 for distribution in metadata.distributions():

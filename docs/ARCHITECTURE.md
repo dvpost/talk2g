@@ -30,7 +30,8 @@ flowchart LR
 `events.jsonl` — события и диапазоны сэмплов каждого фактического вызова модели,
 с учётом начала речи и обрезки тишины после паузы.
 WAV и метаданные закрываются до `session_end`, чтобы выгрузка собственного
-сервера не оборвала сохранение. Ошибки диска не прерывают распознавание;
+сервера не оборвала сохранение. Ошибки диска не прерывают распознавание
+по [EXC-0003](exceptional_execution_paths.md#exc-0003--продолжение-распознавания-при-файловой-ошибке-аудиоархива);
 при отмене, разрыве или ошибке принятый звук сохраняется с отдельным статусом.
 Переключение во время диктовки применяется к следующей сессии.
 
@@ -82,7 +83,9 @@ Stop сразу закрывает текущий блок с полным хв�
 накапливает PCM до готовности сервера. Stop закрывает микрофон и обрабатывает
 накопленный звук; после завершения собственный сервер приложения закрывается.
 С выключенной загрузкой по требованию сервер запускается вместе с интерфейсом
-и держит модель в памяти. `LocalService` управляет только процессом, который
+и держит модель в памяти. Ожидание готовности перед передачей PCM ограничено
+[EXC-0001](exceptional_execution_paths.md#exc-0001--ожидание-готовности-модели-перед-передачей-аудио).
+`LocalService` управляет только процессом, который
 запустил сам; отдельный или удалённый сервер продолжает работать независимо.
 
 На Windows используются RegisterHotKey и Unicode SendInput. На X11 используются
@@ -129,16 +132,17 @@ Stop/Cancel, разрыв соединения и отмену задач. Эт�
 пользовательский текст нужен потому, что команда исключается из диктовки,
 но остаётся в ответе сервера. При несовпадении выдаётся ошибка; подтверждённый
 текст сохраняется в UI и истории без подмены серверным итогом. `InsertionQueue` отвечает
-только за упорядоченную вставку, фокус и ожидание отпускания модификаторов.
+только за упорядоченную вставку, фокус и ожидание отпускания модификаторов
+по [EXC-0002](exceptional_execution_paths.md#exc-0002--ожидание-отпускания-модификаторов-перед-вставкой-в-x11).
 
 Клиент, серверные сессии и команда `transcribe` используют одинаковое
 распознавание целых блоков. Пауза задаётся `recognition_pause` в настройках
 или параметрах start. Проверки —
-[test_server.py](tests/test_server.py), [test_audio.py](tests/test_audio.py)
-и [test_real_model.py](tests/test_real_model.py).
+[test_server.py](../tests/test_server.py), [test_audio.py](../tests/test_audio.py)
+и [test_real_model.py](../tests/test_real_model.py).
 Зависимости GUI не нужны для проверки клиентского текста и серверной сессии.
 
-Эти границы закреплены в [test_architecture.py](tests/test_architecture.py):
+Эти границы закреплены в [test_architecture.py](../tests/test_architecture.py):
 сервер не зависит от Qt и клиента даже транзитивно; обработка пользовательского
 текста не зависит от модели и транспорта; представления не импортируют
 контроллер, захват или управление сервером. Явные импорты внутри функций также
@@ -146,24 +150,24 @@ Stop/Cancel, разрыв соединения и отмену задач. Эт�
 
 ## Данные, совместимость и отказы
 
-[Settings](src/talk2g/config.py) проверяет типы, диапазоны и адрес до сохранения;
+[Settings](../src/talk2g/config.py) проверяет типы, диапазоны и адрес до сохранения;
 замена `settings.json` выполняется через временный файл. Отсутствующие поля
 профиля получают значения по умолчанию, неизвестные поля игнорируются.
 Форма меняет только видимые поля, сохраняя настройки модели.
-Проверки совместимости — [test_settings_history.py](tests/test_settings_history.py)
-и [test_ui_pages.py](tests/test_ui_pages.py). [History](src/talk2g/history.py)
+Проверки совместимости — [test_settings_history.py](../tests/test_settings_history.py)
+и [test_ui_pages.py](../tests/test_ui_pages.py). [History](../src/talk2g/history.py)
 хранит идентификатор, время UTC и полный текст в SQLite и оставляет последние
 100 непустых диктовок.
 
 | Сценарий | Наблюдаемый результат | Исполняемая гарантия |
 | --- | --- | --- |
-| Stop, тайм-аут или подтверждённая команда | Микрофон закрывается; оставшееся аудио обрабатывается, очищенный текст сохраняется | [test_client.py](tests/test_client.py), [test_desktop_controls.py](tests/test_desktop_controls.py) |
-| Cancel или разрыв соединения | Необработанный хвост не вводится; занятость сервера освобождается, архив закрывается | [test_server.py](tests/test_server.py) |
-| Ошибка модели | Клиент получает ошибку без ожидания нового аудио; полученный текст остаётся | [test_server.py](tests/test_server.py) |
-| Некорректный ответ сервера | Ошибка видна до передачи события в Qt/CLI; подтверждённый текст сохранён | [test_protocol.py](tests/test_protocol.py), [test_client.py](tests/test_client.py), [test_cli.py](tests/test_cli.py), [test_desktop_controls.py](tests/test_desktop_controls.py) |
-| Ошибка диска при архивировании | Распознавание продолжается; ошибка сообщается отдельно | [test_session_output.py](tests/test_session_output.py), [test_server.py](tests/test_server.py) |
-| Повтор или пропуск commit | Повтор не вводится; пропуск останавливает диктовку, сохраняя корректный префикс | [test_dictated_text.py](tests/test_dictated_text.py) |
-| Смена фокуса или отказ системного ввода | Очередь приостанавливается; остаток остаётся для копирования | [test_desktop.py](tests/test_desktop.py) |
+| Stop, тайм-аут или подтверждённая команда | Микрофон закрывается; оставшееся аудио обрабатывается, очищенный текст сохраняется | [test_client.py](../tests/test_client.py), [test_desktop_controls.py](../tests/test_desktop_controls.py) |
+| Cancel или разрыв соединения | Необработанный хвост не вводится; занятость сервера освобождается, архив закрывается | [test_server.py](../tests/test_server.py) |
+| Ошибка модели | Клиент получает ошибку без ожидания нового аудио; полученный текст остаётся | [test_server.py](../tests/test_server.py) |
+| Некорректный ответ сервера | Ошибка видна до передачи события в Qt/CLI; подтверждённый текст сохранён | [test_protocol.py](../tests/test_protocol.py), [test_client.py](../tests/test_client.py), [test_cli.py](../tests/test_cli.py), [test_desktop_controls.py](../tests/test_desktop_controls.py) |
+| Ошибка диска при архивировании | Распознавание продолжается; ошибка сообщается отдельно | [test_session_output.py](../tests/test_session_output.py), [test_server.py](../tests/test_server.py) |
+| Повтор или пропуск commit | Повтор не вводится; пропуск останавливает диктовку, сохраняя корректный префикс | [test_dictated_text.py](../tests/test_dictated_text.py) |
+| Смена фокуса или отказ системного ввода | Очередь приостанавливается; остаток остаётся для копирования | [test_desktop.py](../tests/test_desktop.py) |
 
 Автоматический повтор сессии после сетевой ошибки не используется: ввод в чужое
 приложение не поддерживает откат. На Linux/X11 окончательная проверка фокуса и
@@ -174,40 +178,40 @@ Stop/Cancel, разрыв соединения и отмену задач. Эт�
 
 `LocalService` проверяет health с ограничением 2 секунды и завершает только
 свой дочерний процесс. Микрофон, ожидание модели и финализация имеют разные
-ограничения времени в [client.py](src/talk2g/client.py); тайм-аут финализации
+ограничения времени в [client.py](../src/talk2g/client.py); тайм-аут финализации
 не включает загрузку модели. Журналы диагностики находятся в `.data`, состояние
 и ошибки загрузки сервера доступны через `/health`.
 Назначение журналов, способ создания `launcher.log` при ручном запуске
 и ограничения диагностики остановки описаны в
-[README.md](README.md#журналы-и-диагностика-остановки).
+[OPERATIONS.md](OPERATIONS.md#журналы-и-диагностика-остановки).
 
 ## Карта исходников
 
 | Файл в `src/talk2g` | Ответственность |
 |---|---|
-| [cli.py](src/talk2g/cli.py) | Команды app, server, download, transcribe, replay, doctor, toggle и quit |
-| [desktop.py](src/talk2g/desktop.py) | Координация приложения: трей, настройки, жизненный цикл записи и результаты |
-| [ui/dictation.py](src/talk2g/ui/dictation.py), [ui/settings.py](src/talk2g/ui/settings.py), [ui/history.py](src/talk2g/ui/history.py) | Представления вкладок и сигналы пользовательских действий |
-| [ui/overlay.py](src/talk2g/ui/overlay.py) | Плавающее окно, позиционирование и единая полоса таймеров |
-| [client.py](src/talk2g/client.py) | Захват звука, очередь PCM и WebSocket-клиент |
-| [delivery.py](src/talk2g/delivery.py), [dictated_text.py](src/talk2g/dictated_text.py) | Порядок commits, пользовательский текст и сверка серверного итога |
-| [insertion.py](src/talk2g/insertion.py) | Очередь системной вставки и сохранение невставленного остатка |
-| [server.py](src/talk2g/server.py) | Загрузка модели, HTTP/WebSocket, авторизация, допуск и очистка соединения |
-| [protocol.py](src/talk2g/protocol.py) | Start, настройки сессии и проверка ответов сервера v1 |
-| [session.py](src/talk2g/session.py) | Сегментация принятого PCM, расписание модели и подтверждение текста |
-| [session_output.py](src/talk2g/session_output.py) | Отправка событий, необязательный архив и сообщения об ошибках диска |
-| [audio.py](src/talk2g/audio.py) | Чтение аудиофайлов, PCM, VAD и целые блоки речи |
-| [model.py](src/talk2g/model.py) | Веса GigaAM/Silero, ONNX Runtime, слова с временными отметками |
-| [transcript.py](src/talk2g/transcript.py) | Добавление целых блоков текста и последовательность commits |
-| [input.py](src/talk2g/input.py), [hotkey.py](src/talk2g/hotkey.py), [xkb.py](src/talk2g/xkb.py), [portal.py](src/talk2g/portal.py) | Платформенная вставка и глобальный хоткей |
-| [service.py](src/talk2g/service.py) | Проверка health и управление собственным сервером |
-| [voice_command.py](src/talk2g/voice_command.py) | Обработка команды остановки |
-| [config.py](src/talk2g/config.py), [history.py](src/talk2g/history.py) | Настройки и SQLite-история последних 100 диктовок |
-| [recording.py](src/talk2g/recording.py) | Серверный WAV, журнал входных окон и итог сессии |
-| [autostart.py](src/talk2g/autostart.py), [runtime.py](src/talk2g/runtime.py) | Автозапуск и подготовка окружения Qt |
+| [cli.py](../src/talk2g/cli.py) | Команды app, server, download, transcribe, replay, doctor, toggle и quit |
+| [desktop.py](../src/talk2g/desktop.py) | Координация приложения: трей, настройки, жизненный цикл записи и результаты |
+| [ui/dictation.py](../src/talk2g/ui/dictation.py), [ui/settings.py](../src/talk2g/ui/settings.py), [ui/history.py](../src/talk2g/ui/history.py) | Представления вкладок и сигналы пользовательских действий |
+| [ui/overlay.py](../src/talk2g/ui/overlay.py) | Плавающее окно, позиционирование и единая полоса таймеров |
+| [client.py](../src/talk2g/client.py) | Захват звука, очередь PCM и WebSocket-клиент |
+| [delivery.py](../src/talk2g/delivery.py), [dictated_text.py](../src/talk2g/dictated_text.py) | Порядок commits, пользовательский текст и сверка серверного итога |
+| [insertion.py](../src/talk2g/insertion.py) | Очередь системной вставки и сохранение невставленного остатка |
+| [server.py](../src/talk2g/server.py) | Загрузка модели, HTTP/WebSocket, авторизация, допуск и очистка соединения |
+| [protocol.py](../src/talk2g/protocol.py) | Start, настройки сессии и проверка ответов сервера v1 |
+| [session.py](../src/talk2g/session.py) | Сегментация принятого PCM, расписание модели и подтверждение текста |
+| [session_output.py](../src/talk2g/session_output.py) | Отправка событий, необязательный архив и сообщения об ошибках диска |
+| [audio.py](../src/talk2g/audio.py) | Чтение аудиофайлов, PCM, VAD и целые блоки речи |
+| [model.py](../src/talk2g/model.py) | Веса GigaAM/Silero, ONNX Runtime, слова с временными отметками |
+| [transcript.py](../src/talk2g/transcript.py) | Добавление целых блоков текста и последовательность commits |
+| [input.py](../src/talk2g/input.py), [hotkey.py](../src/talk2g/hotkey.py), [xkb.py](../src/talk2g/xkb.py), [portal.py](../src/talk2g/portal.py) | Платформенная вставка и глобальный хоткей |
+| [service.py](../src/talk2g/service.py) | Проверка health и управление собственным сервером |
+| [voice_command.py](../src/talk2g/voice_command.py) | Обработка команды остановки |
+| [config.py](../src/talk2g/config.py), [history.py](../src/talk2g/history.py) | Настройки и SQLite-история последних 100 диктовок |
+| [recording.py](../src/talk2g/recording.py) | Серверный WAV, журнал входных окон и итог сессии |
+| [autostart.py](../src/talk2g/autostart.py), [runtime.py](../src/talk2g/runtime.py) | Автозапуск и подготовка окружения Qt |
 
 Настройки, SQLite и логи находятся в `.data`, веса — в `models`,
 сохранённые аудиосессии — в `recordings` на стороне сервера.
 Корень задаётся `TALK2G_HOME`, аргументом `app --home` или расположением
 проекта/автономного приложения. Локальные данные и веса не входят в Git.
-Проверки — [VALIDATION.md](VALIDATION.md); сборка — [packaging/build.py](packaging/build.py).
+Проверки — [VALIDATION.md](VALIDATION.md); сборка — [packaging/build.py](../packaging/build.py).

@@ -4,12 +4,13 @@
 
 ## Правила работы
 
-- Следуй [конвенции 7.1](https://github.com/dvpost/coding_testing_and_docing_conventions/blob/61381814b36fe8c79f75353eedb5de4a6a6a671b/coding_testing_and_docing_conventions.md)
-  из `dvpost/coding_testing_and_docing_conventions`, commit `61381814b36fe8c79f75353eedb5de4a6a6a671b`.
+- Следуй [конвенции 2026.10.1](https://github.com/dvpost/coding_testing_and_docing_conventions/blob/b1cb83e9abce14f4688e5fdab7a94ca7604b85b3/coding_testing_and_docing_conventions.md)
+  из `dvpost/coding_testing_and_docing_conventions`, тег `v2026.10.1`,
+  commit `b1cb83e9abce14f4688e5fdab7a94ca7604b85b3`.
   Локальной копии нет; применяй закреплённую ревизию, а не меняющийся main.
   Перед изменениями M/H проследи вызывающих, потребителей, побочные эффекты
-  и соответствующие тесты; для H сохрани рабочий план. Все планы храни
-  в `TODO/` в корне проекта.
+  и соответствующие тесты; для H сохрани рабочий план в `TODO/active/`.
+  Все планы храни в `TODO/` в корне проекта.
 - Выполняй один основной путь; при отказе показывай ошибку и прекращай
   операцию. Новые retry, fallback и защитные обёртки без явного согласования
   оператора запрещены. Предложения исключений храни только в `TODO/`;
@@ -20,6 +21,10 @@
 - CURRENT STATE ONLY: описывай подтверждённое текущее состояние; заменяй или
   удаляй устаревший текст. Завершённые планы и архивы не используй как активные
   инструкции; к Git history обращайся для целевого расследования.
+- Подробные документы храни в `docs/`, README — краткий старт и ссылки.
+  Версию конвенции объявляй только здесь; остальные документы ссылаются
+  на AGENTS. Для каждого контракта сохраняй один источник. Результаты
+  разовых проверок и статус соответствия сообщай в отчёте задачи/PR/CI.
 - NO DEAD CODE: перед удалением проверь вызывающих, внешние контракты,
   регистрации Qt, CLI и сборку. Подтверждённо неиспользуемую реализацию
   удаляй вместе с её настройками, зависимостями и тестами; историю хранит Git.
@@ -64,17 +69,19 @@ uv run ruff format --check src tests benchmarks packaging scripts
 ```
 
 Для Windows и проверок с дополнительными системными зависимостями,
-реальной моделью или сборкой используй команды и условия из `VALIDATION.md`.
+реальной моделью или сборкой используй команды и условия из `docs/VALIDATION.md`.
 
 ## Навигация
 
 | Контекст | Источник |
 | --- | --- |
-| Запуск, настройки, диагностика | [README.md](README.md) |
-| Журналы, ручной фоновый запуск и диагностика остановки | [README.md](README.md#журналы-и-диагностика-остановки) |
-| Границы, критичные потоки, карта кода | [ARCHITECTURE.md](ARCHITECTURE.md) |
-| Handshake, PCM, события, Stop/Cancel | [PROTOCOL.md](PROTOCOL.md) |
-| Стратегия тестов, gates и ограничения платформ | [VALIDATION.md](VALIDATION.md) |
+| Быстрый старт | [README.md](README.md) |
+| Установка, настройки диктовки и архив аудио | [docs/USAGE.md](docs/USAGE.md) |
+| Сервер, профили, журналы и диагностика остановки | [docs/OPERATIONS.md](docs/OPERATIONS.md) |
+| Границы, критичные потоки, карта кода | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| Handshake, PCM, события, Stop/Cancel | [docs/PROTOCOL.md](docs/PROTOCOL.md) |
+| Команды проверок, gates и ограничения платформ | [docs/VALIDATION.md](docs/VALIDATION.md) |
 | Действующие разрешённые исключительные пути | [docs/exceptional_execution_paths.md](docs/exceptional_execution_paths.md) |
 | Зависимости и закреплённое окружение | [pyproject.toml](pyproject.toml), [uv.lock](uv.lock) |
+| Сторонние компоненты и лицензии поставки | [docs/THIRD_PARTY.md](docs/THIRD_PARTY.md) |
 | CI | [.github/workflows/check.yml](.github/workflows/check.yml) |
