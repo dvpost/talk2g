@@ -17,7 +17,6 @@ from websockets.http11 import Response
 
 from .audio import Segmenter
 from .config import RATE, Settings
-from .dual_window import DualWindowProcessor
 from .model import GigaRecognizer, SileroDetector, Word
 from .transcript import Transcript
 
@@ -32,13 +31,11 @@ class DictationServer:
         recognizer=None,
         detector_factory=None,
         home: Path | None = None,
-        language_model=None,
     ):
         self.settings = settings
         self.home = home
         self.recognizer = recognizer
         self.detector_factory = detector_factory
-        self.language_model = language_model
         self.active = False
         self.loading_error = ""
         self.pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="giga-asr")
@@ -108,48 +105,11 @@ class DictationServer:
                 raise ValueError("Сервер занят другой диктовкой")
             self.active = admitted = True
             settings = replace(self.settings)
-            for name in (
-                "interval",
-                "holdback",
-                "silence",
-                "window",
-                "dual_window",
-                "fast_window",
-                "quality_window",
-                "quality_interval",
-                "quality_holdback",
-                "lm_rescore",
-                "lm_margin",
-            ):
+            for name in ("interval", "holdback", "silence", "window"):
                 if name in start:
                     setattr(settings, name, start[name])
             settings.validate()
-            rescore = None
-            if settings.dual_window and settings.lm_rescore:
-                from .language_model import RussianLanguageModel
-                from .rerank import WindowReranker
-
-                if self.language_model is None:
-                    self.language_model = await asyncio.get_running_loop().run_in_executor(
-                        self.pool, RussianLanguageModel, self.home
-                    )
-                reranker = WindowReranker(self.language_model, settings.lm_margin)
-
-                async def rescore(agreement, words, end):
-                    return await asyncio.get_running_loop().run_in_executor(
-                        self.pool, reranker.select, agreement, words, end
-                    )
-
-            segmentation_settings = (
-                replace(
-                    settings,
-                    window=settings.quality_window,
-                    holdback=max(settings.holdback, settings.quality_holdback),
-                )
-                if settings.dual_window
-                else settings
-            )
-            segmenter = Segmenter(self.detector_factory(), segmentation_settings)
+            segmenter = Segmenter(self.detector_factory(), settings)
             transcript = Transcript(settings.holdback)
             changed = asyncio.Event()
             stopped = False
@@ -236,36 +196,8 @@ class DictationServer:
                         segment.trim(int((transcript.frontier - 1.2) * RATE))
                     last_decode_at = time.monotonic()
 
-            await send(
-                {
-                    "type": "ready",
-                    "model": self.settings.model,
-                    "dual_window": settings.dual_window,
-                    "lm_rescore": rescore is not None,
-                }
-            )
-            if settings.dual_window:
-
-                async def decode(audio):
-                    return await asyncio.get_running_loop().run_in_executor(
-                        self.pool, self.recognizer.decode, audio
-                    )
-
-                processor = DualWindowProcessor(
-                    settings,
-                    segmenter,
-                    decode,
-                    send,
-                    changed,
-                    lambda: stopped,
-                    lambda: sent_bytes,
-                    started_at,
-                    rescore,
-                )
-                transcript = processor.transcript
-                worker = asyncio.create_task(processor.run())
-            else:
-                worker = asyncio.create_task(process())
+            await send({"type": "ready", "model": self.settings.model})
+            worker = asyncio.create_task(process())
             while not stopped:
                 receive = asyncio.create_task(socket.recv())
                 done, _ = await asyncio.wait((receive, worker), return_when=asyncio.FIRST_COMPLETED)

@@ -301,8 +301,6 @@ class MainWindow(QMainWindow):
             ("load_on_demand", "Загружать модель только при диктовке"),
             ("autostart", "Запускать при входе в систему"),
             ("stop_on_phrase", "Останавливать по фразе «конец связи»"),
-            ("dual_window", "Два окна: быстрый черновик и уточнение"),
-            ("lm_rescore", "Выбирать варианты двух окон с помощью ruGPT"),
         ):
             action = QAction(label, self)
             action.setCheckable(True)
@@ -443,21 +441,6 @@ class MainWindow(QMainWindow):
             "Произнесите команду и сделайте короткую паузу. Команда завершает диктовку и не попадает в текст."
         )
         form.addRow(self.voice_stop_option)
-        self.dual_window_option = QCheckBox("Два окна: быстрый черновик и уточнение")
-        self.dual_window_option.setChecked(self.settings.dual_window)
-        self.dual_window_option.setToolTip(
-            "Эксперимент: короткое окно показывает черновик, длинное проверяет текст перед вводом. "
-            "Ввод может отставать сильнее. Изменение применяется к следующей диктовке."
-        )
-        form.addRow(self.dual_window_option)
-        self.lm_rescore_option = QCheckBox("Выбирать варианты двух окон с помощью ruGPT")
-        self.lm_rescore_option.setChecked(self.settings.lm_rescore)
-        self.lm_rescore_option.setToolTip(
-            "Эксперимент: локальная русская языковая модель оценивает спорные слова в контексте. "
-            "Работает с двумя окнами. Требуется однократно скачать модель: download --language-model. "
-            "Изменение применяется к следующей диктовке."
-        )
-        form.addRow(self.lm_rescore_option)
         for checkbox, name in (
             (self.automatic, "auto_insert"),
             (self.copy_final, "copy_on_stop"),
@@ -465,8 +448,6 @@ class MainWindow(QMainWindow):
             (self.demand_option, "load_on_demand"),
             (self.autostart_option, "autostart"),
             (self.voice_stop_option, "stop_on_phrase"),
-            (self.dual_window_option, "dual_window"),
-            (self.lm_rescore_option, "lm_rescore"),
         ):
             checkbox.toggled.connect(lambda checked, name=name: self.set_feature(name, checked))
         self.interval_field = QDoubleSpinBox()
@@ -628,8 +609,6 @@ class MainWindow(QMainWindow):
                 load_on_demand=self.demand_option.isChecked(),
                 autostart=self.autostart_option.isChecked(),
                 stop_on_phrase=self.voice_stop_option.isChecked(),
-                dual_window=self.dual_window_option.isChecked(),
-                lm_rescore=self.lm_rescore_option.isChecked(),
                 interval=self.interval_field.value(),
                 silence=self.silence_field.value(),
             )
@@ -686,14 +665,10 @@ class MainWindow(QMainWindow):
             ("load_on_demand", self.demand_option),
             ("autostart", self.autostart_option),
             ("stop_on_phrase", self.voice_stop_option),
-            ("dual_window", self.dual_window_option),
-            ("lm_rescore", self.lm_rescore_option),
         ):
             for control in (checkbox, self.feature_actions[name]):
                 with QSignalBlocker(control):
                     control.setChecked(getattr(self.settings, name))
-        self.lm_rescore_option.setEnabled(self.settings.dual_window)
-        self.feature_actions["lm_rescore"].setEnabled(self.settings.dual_window)
 
     def set_feature(self, name: str, enabled: bool):
         if getattr(self.settings, name) == enabled:
@@ -715,8 +690,6 @@ class MainWindow(QMainWindow):
                 self._sync_overlay()
             elif name == "stop_on_phrase" and self.thread:
                 self._voice_delta("")  # disabling releases a held ordinary word immediately
-            elif name in ("dual_window", "lm_rescore") and self.thread:
-                self.status.setText("Режим сравнения изменён · применится к следующей диктовке")
             elif name == "auto_insert":
                 if enabled and self.thread:
                     self._create_inserter(foreground())
@@ -850,10 +823,6 @@ class MainWindow(QMainWindow):
         self.record.setText("Остановить диктовку")
         self.record.setEnabled(True)
         self.overlay.state.setText("Слушаю · горячая клавиша — завершить")
-        if self.settings.dual_window:
-            self.overlay.state.setText("Слушаю · два окна · черновик проверяется перед вводом")
-            if self.settings.lm_rescore:
-                self.overlay.state.setText("Слушаю · два окна · варианты оценивает ruGPT")
         self.overlay.preview.setText("")
         self._sync_overlay()
         self.tray.setToolTip("Giga Dictation · слушаю · " + hotkey_label(self.settings.hotkey))
@@ -905,19 +874,7 @@ class MainWindow(QMainWindow):
             self.overlay.preview.setText(self.delivery.text[-130:] + "  " + event["text"])
         elif event["type"] == "segment_end":
             self.partial.clear()
-        elif event["type"] == "rescore":
-            label = {
-                "short": "выбрала короткое окно",
-                "long": "выбрала длинное окно",
-                "abstain": "нет уверенного выбора",
-            }
-            message = f"ruGPT: {label[event['choice']]} · {event['seconds'] * 1000:.0f} мс"
-            self.status.setText(message)
-            self.overlay.state.setText(message)
-            log.info("ruGPT: %s", json.dumps(event))
         elif event["type"] == "session_end":
-            if event.get("dual_window"):
-                log.info("Два окна: %s", json.dumps(event["dual_window"]))
             self._voice_delta("", final=True)
             if event["text"] != self.raw_delivery.text:
                 self._failure("Итог сервера отличается от полученных фрагментов. Текст сохранён в истории")

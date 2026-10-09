@@ -131,9 +131,6 @@ def main() -> None:
     sub.add_parser("doctor", help="Проверить зависимости и микрофон")
     download = sub.add_parser("download", help="Скачать модели один раз")
     download.add_argument("--model", choices=["gigaam-v3-e2e-ctc", "gigaam-v3-e2e-rnnt"])
-    download.add_argument(
-        "--language-model", action="store_true", help="Также скачать ruGPT3-small INT8 (280 МБ)"
-    )
     server = sub.add_parser("server", help="Фоновый сервер GigaAM")
     server.add_argument("--host", default="127.0.0.1")
     server.add_argument("--port", default=8769, type=int)
@@ -165,10 +162,6 @@ def main() -> None:
             print(json.dumps(doctor(), ensure_ascii=False, indent=2))
         elif args.command == "download":
             prepare_models(settings)
-            if args.language_model:
-                from .language_model import prepare_language_model
-
-                prepare_language_model()
             print("Модели скачаны. Дальнейшая локальная диктовка работает без интернета.")
         elif args.command == "server":
             from .server import DictationServer

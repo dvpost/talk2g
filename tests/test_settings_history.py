@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from giga_dictation.config import Settings
@@ -11,8 +13,6 @@ def test_settings_are_saved_and_loaded_without_changing_other_folders(tmp_path):
         show_overlay=False,
         load_on_demand=True,
         stop_on_phrase=True,
-        dual_window=True,
-        lm_rescore=True,
         interval=0.9,
     )
     settings.save(tmp_path)
@@ -33,20 +33,47 @@ def test_settings_are_saved_and_loaded_without_changing_other_folders(tmp_path):
         {"load_on_demand": "true"},
         {"autostart": "true"},
         {"stop_on_phrase": "true"},
-        {"dual_window": "true"},
-        {"fast_window": 0},
-        {"quality_window": 25},
-        {"quality_window": 5, "fast_window": 5},
-        {"quality_interval": float("nan")},
-        {"quality_holdback": -1},
-        {"lm_rescore": "true"},
-        {"lm_margin": float("nan")},
-        {"lm_margin": 0},
     ],
 )
 def test_invalid_settings_are_rejected(values):
     with pytest.raises(ValueError):
         Settings(**values).validate()
+
+
+def test_old_experimental_settings_load_and_save_as_regular_dictation(tmp_path):
+    path = tmp_path / ".data" / "settings.json"
+    path.parent.mkdir()
+    path.write_text(
+        json.dumps(
+            {
+                "microphone": "Микрофон",
+                "auto_insert": False,
+                "load_on_demand": True,
+                "stop_on_phrase": True,
+                "interval": 0.9,
+                "dual_window": True,
+                "fast_window": 5,
+                "quality_window": 16,
+                "quality_interval": 2.5,
+                "quality_holdback": 1.2,
+                "lm_rescore": True,
+                "lm_margin": 0.12,
+            }
+        ),
+        encoding="utf-8",
+    )
+    settings = Settings.load(tmp_path)
+    assert settings == Settings(
+        microphone="Микрофон",
+        auto_insert=False,
+        load_on_demand=True,
+        stop_on_phrase=True,
+        interval=0.9,
+    )
+    settings.save(tmp_path)
+    saved = json.loads(path.read_text(encoding="utf-8"))
+    assert "dual_window" not in saved and "lm_rescore" not in saved
+    assert Settings.load(tmp_path) == settings
 
 
 def test_history_preserves_text_and_bounds_retention(tmp_path):

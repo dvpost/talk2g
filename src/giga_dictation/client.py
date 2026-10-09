@@ -198,29 +198,12 @@ class DictationThread(QThread):
                             "holdback": self.settings.holdback,
                             "silence": self.settings.silence,
                             "window": self.settings.window,
-                            "dual_window": self.settings.dual_window,
-                            "fast_window": self.settings.fast_window,
-                            "quality_window": self.settings.quality_window,
-                            "quality_interval": self.settings.quality_interval,
-                            "quality_holdback": self.settings.quality_holdback,
-                            "lm_rescore": self.settings.dual_window and self.settings.lm_rescore,
-                            "lm_margin": self.settings.lm_margin,
                         }
                     )
                 )
                 response = json.loads(socket.recv(timeout=15))
                 if response.get("type") != "ready":
                     raise RuntimeError(response.get("message", "Сервер не готов"))
-                if self.settings.dual_window and response.get("dual_window") is not True:
-                    raise RuntimeError("Сервер не поддерживает два окна. Обновите сервер или снимите галочку")
-                if (
-                    self.settings.dual_window
-                    and self.settings.lm_rescore
-                    and response.get("lm_rescore") is not True
-                ):
-                    raise RuntimeError(
-                        "Сервер не поддерживает ruGPT. Обновите сервер или снимите галочку сравнения"
-                    )
                 self.startup_metrics = {
                     "type": "model_ready",
                     "load_wait_seconds": time.monotonic() - self.capture_time,

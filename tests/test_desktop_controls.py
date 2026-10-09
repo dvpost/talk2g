@@ -154,48 +154,6 @@ def test_voice_stop_checkbox_syncs_and_persists_without_loading_model(window, tm
     assert window.service.starts == window.service.closes == 0
 
 
-def test_dual_window_checkbox_persists_and_defers_active_session_change(window, qtbot, tmp_path):
-    window.set_feature("auto_insert", False)
-    window.set_feature("load_on_demand", True)
-    window.toggle()
-    qtbot.waitUntil(lambda: window.thread is not None)
-    assert not window.thread.settings.dual_window
-    window.feature_actions["dual_window"].trigger()
-    assert window.dual_window_option.isChecked() and Settings.load(tmp_path).dual_window
-    assert not window.thread.settings.dual_window and window.thread.stop_calls == 0
-    window.thread.finished.emit()
-    window.toggle()
-    qtbot.waitUntil(lambda: window.thread is not None)
-    assert window.thread.settings.dual_window
-    window.dual_window_option.setChecked(False)
-    assert not window.feature_actions["dual_window"].isChecked()
-    assert not Settings.load(tmp_path).dual_window and window.thread.settings.dual_window
-
-
-def test_language_model_checkbox_depends_on_two_windows_and_defers_active_change(window, qtbot, tmp_path):
-    assert not window.lm_rescore_option.isEnabled()
-    assert not window.feature_actions["lm_rescore"].isEnabled()
-    window.set_feature("dual_window", True)
-    assert window.lm_rescore_option.isEnabled()
-    window.set_feature("auto_insert", False)
-    window.set_feature("load_on_demand", True)
-    window.toggle()
-    qtbot.waitUntil(lambda: window.thread is not None)
-    closes = window.service.closes
-    window.feature_actions["lm_rescore"].trigger()
-    assert window.lm_rescore_option.isChecked() and Settings.load(tmp_path).lm_rescore
-    assert not window.thread.settings.lm_rescore and window.thread.stop_calls == 0
-    assert window.service.closes == closes
-    window.thread.finished.emit()
-    window.toggle()
-    qtbot.waitUntil(lambda: window.thread is not None)
-    assert window.thread.settings.lm_rescore
-    closes = window.service.closes
-    window.set_feature("dual_window", False)
-    assert not window.lm_rescore_option.isEnabled() and Settings.load(tmp_path).lm_rescore
-    assert window.service.closes == closes
-
-
 def test_split_voice_command_stops_once_and_cleans_history_and_clipboard(window, qtbot):
     window.set_feature("auto_insert", False)
     window.set_feature("stop_on_phrase", True)

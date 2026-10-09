@@ -56,10 +56,19 @@ async def collect(socket, result=None):
     return result
 
 
-async def test_real_duplex_protocol_commits_before_stop_and_flushes_tail(server):
+@pytest.mark.parametrize(
+    "options",
+    [
+        {},
+        {"dual_window": True, "quality_window": 16, "lm_rescore": True},
+    ],
+)
+async def test_real_duplex_protocol_commits_before_stop_and_flushes_tail(server, options):
     _, url = server
     async with connect(url, proxy=None) as socket:
-        assert (await start(socket))["type"] == "ready"
+        ready = await start(socket, **options)
+        assert ready["type"] == "ready"
+        assert "dual_window" not in ready and "lm_rescore" not in ready
         progress = []
         receive = asyncio.create_task(collect(socket, progress))
         for _ in range(18):

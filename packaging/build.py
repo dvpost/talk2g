@@ -29,8 +29,6 @@ command = [
     "onnxruntime",
     "--collect-all",
     "sounddevice",
-    "--collect-all",
-    "tokenizers",
     "--collect-submodules",
     "huggingface_hub",
     "--collect-submodules",
@@ -52,14 +50,6 @@ for source in (model, vad.parent):
     shutil.copytree(
         source, output / "models" / source.name, ignore=shutil.ignore_patterns(".cache"), dirs_exist_ok=True
     )
-language_model = root / "models/rugpt3small-int8"
-if language_model.is_dir():
-    shutil.copytree(
-        language_model,
-        output / "models" / language_model.name,
-        ignore=shutil.ignore_patterns(".cache"),
-        dirs_exist_ok=True,
-    )
 for name in (
     "README.md",
     "LICENSE",
@@ -67,7 +57,6 @@ for name in (
     "VALIDATION.md",
     "PROTOCOL.md",
     "RESEARCH_AND_DESIGN.md",
-    "LANGUAGE_MODEL_EXPERIMENT.md",
 ):
     shutil.copy2(root / name, output / name)
 if (root / "packaging/licenses").is_dir():

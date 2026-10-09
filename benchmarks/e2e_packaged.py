@@ -30,8 +30,6 @@ def main():
     parser.add_argument("--terminal", action="store_true", help="Use real XFCE Terminal as the target")
     parser.add_argument("--sessions", type=int, default=1)
     parser.add_argument("--on-demand", action="store_true")
-    parser.add_argument("--dual-window", action="store_true")
-    parser.add_argument("--language-model", action="store_true")
     parser.add_argument("--stop-after", type=float, help="Stop during speech after this many seconds")
     parser.add_argument("--voice-stop", action="store_true", help="Stop only by recognized voice command")
     parser.add_argument("--audio", type=Path, help="Use a custom microphone playback fixture")
@@ -66,8 +64,6 @@ def main():
             server_url=f"ws://127.0.0.1:{port}/v1/dictate",
             load_on_demand=args.on_demand,
             stop_on_phrase=args.voice_stop,
-            dual_window=args.dual_window,
-            lm_rescore=args.language_model,
         )
         settings.save(profile)
         environment = dict(os.environ, GIGA_DICTATION_HOME=str(profile), HF_HUB_OFFLINE="1")
@@ -284,8 +280,6 @@ def main():
                             bracketed_paste=args.terminal,
                             load_on_demand=args.on_demand,
                             stop_on_phrase=args.voice_stop,
-                            dual_window=args.dual_window,
-                            lm_rescore=args.language_model,
                             startup=startup_metrics(),
                             stop_to_result_seconds=time.monotonic() - stopped_at,
                             idle_gui_after_stop_pss_mib=memory_mib(process.pid),
@@ -308,7 +302,7 @@ def main():
                             assert expected.lower().startswith("нич"), expected
                         # Loading the second model is part of cold activation;
                         # it must still produce live text well before this fixture ends.
-                        first_insert_limit = 12 if args.on_demand and args.language_model else 8
+                        first_insert_limit = 8
                         if not args.on_demand:
                             first_insert_limit = 6
                         assert first_insert is not None and first_insert < first_insert_limit, result
